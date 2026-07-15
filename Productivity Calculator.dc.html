@@ -1,0 +1,2437 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics="">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+  body { margin:0; background:#f6f9fb; font-family:'IBM Plex Sans Thai',-apple-system,sans-serif; color:#141c21; font-size:13px; }
+  a { color:#1A6FA8; } a:hover { color:#0D4F7C; }
+  input[type=number]::-webkit-inner-spin-button { opacity:1; }
+  table { border-collapse:collapse; width:100%; }
+</style>
+</helmet>
+
+<div style="display:flex; height:100vh; width:100%; overflow:hidden;">
+  <div onClick="{{ closeDrawer }}" style="{{ drawerBackdropStyle }}"></div>
+  <!-- SIDEBAR -->
+  <div style="{{ sidebarStyle }}">
+    <div style="display:flex; align-items:center; gap:10px; padding:0 8px;">
+      <div style="width:30px; height:30px; border-radius:9px; background:#1A6FA8; display:flex; align-items:center; justify-content:center; flex:none;">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="white"><rect x="1" y="1" width="6" height="6" rx="1.5"></rect><rect x="9" y="1" width="6" height="6" rx="1.5"></rect><rect x="1" y="9" width="6" height="6" rx="1.5"></rect><rect x="9" y="9" width="6" height="6" rx="1.5"></rect></svg>
+      </div>
+      <div style="font-weight:700; font-size:14px; letter-spacing:-0.01em;">DC &amp; Shop<br><span style="color:#1A6FA8;">Productivity</span></div>
+    </div>
+    <sc-for list="{{ navSections }}" as="sec" hint-placeholder-count="3">
+      <div style="display:flex; flex-direction:column; gap:2px;">
+        <div style="font-size:10px; font-weight:600; color:#8a9095; text-transform:uppercase; letter-spacing:0.06em; padding:0 10px 4px;">{{ sec.label }}</div>
+        <sc-for list="{{ sec.items }}" as="item" hint-placeholder-count="2">
+          <div onClick="{{ item.onClick }}" style="{{ item.style }}">
+            <i class="{{ item.icon }}" style="font-size:14px; flex-shrink:0;"></i>
+            <span style="flex:1;">{{ item.label }}</span>
+            <sc-if value="{{ item.badge }}" hint-placeholder-val="{{ false }}">
+              <span style="background:#ffd7d0; color:#972527; font-size:10px; font-weight:700; padding:1px 6px; border-radius:99px;">{{ item.badge }}</span>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </sc-for>
+  </div>
+
+  <!-- MAIN -->
+  <div style="flex:1; display:flex; flex-direction:column; min-width:0; overflow:hidden;">
+    <div style="{{ headerPadStyle }}">
+      <div style="display:flex; align-items:center; gap:14px;">
+        <button onClick="{{ toggleDrawer }}" style="{{ hamburgerStyle }}"><i class="ti ti-menu-2"></i></button>
+        <div>
+          <div style="font-size:17px; font-weight:700; letter-spacing:-0.01em;">{{ screenTitle }}</div>
+          <div style="font-size:12px; color:#646a6e; margin-top:1px;">{{ screenSubtitle }}</div>
+        </div>
+        <sc-if value="{{ isDashboard }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ openSummaryModal }}" style="display:flex; align-items:center; gap:6px; padding:8px 16px; border-radius:99px; background:#1A6FA8; color:#fff; font-size:12.5px; font-weight:600; border:none; cursor:pointer; font-family:inherit;">
+            <i class="ti ti-sparkles" style="font-size:14px;"></i> สรุปผลการวิเคราะห์
+          </button>
+        </sc-if>
+      </div>
+      <div style="font-size:11.5px; color:#6d7277;">{{ todayLabel }}</div>
+    </div>
+
+    <sc-if value="{{ hasMonths }}" hint-placeholder-val="{{ false }}">
+      <div style="{{ monthBarPadStyle }}">
+        <span style="font-size:11.5px; font-weight:600; color:#595e63;">เดือนข้อมูล:</span>
+        <select value="{{ selectedMonth }}" onChange="{{ onMonthChange }}" style="height:32px; padding:0 12px; border-radius:8px; border:1px solid #d9dfe3; font-size:12.5px; background:#fff; font-family:inherit;">
+          <sc-for list="{{ monthList }}" as="m" hint-placeholder-count="1"><option value="{{ m }}">{{ m }}</option></sc-for>
+        </select>
+        <span style="font-size:11px; color:#8a9095;">Productivity คำนวณแยกตามเดือนที่เลือก&nbsp;<br></span>
+      </div>
+    </sc-if>
+
+    <div style="{{ contentPadStyle }}">
+
+      <!-- ============ IMPORT (hidden — sync config lives in state; re-enable nav item to expose UI) ============ -->
+      <sc-if value="{{ false }}" hint-placeholder-val="{{ false }}">
+        <sc-if value="{{ dataLoaded }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; gap:12px; align-items:center; padding:16px 20px; border-radius:14px; background:#d7f4e0; margin-bottom:20px;">
+            <div style="width:8px; height:8px; border-radius:50%; background:#0b7643; flex:none;"></div>
+            <div style="font-size:13px; color:#005226;"><b>ข้อมูลตัวอย่างพร้อมใช้งาน</b> — DC {{ dcList.length }} สาขา · Shop {{ shopList.length }} สาขา</div>
+            <button onClick="{{ resetData }}" style="margin-left:auto; padding:7px 14px; border-radius:8px; border:1px solid #bfd4c5; background:#fff; font-size:12px; font-weight:600; color:#005226; cursor:pointer; font-family:inherit;">ล้างข้อมูล</button>
+          </div>
+        </sc-if>
+        <sc-if value="{{ notLoaded }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex; flex-direction:column; align-items:center; text-align:center; gap:16px; padding:40px 20px;">
+            <div style="width:56px; height:56px; border-radius:16px; background:#d7ebfa; display:flex; align-items:center; justify-content:center;"><i class="ti ti-upload" style="font-size:26px; color:#1A6FA8;"></i></div>
+            <div style="font-size:16px; font-weight:600;">เริ่มต้นด้วยการนำเข้าข้อมูล</div>
+            <div style="font-size:12.5px; color:#646a6e; max-width:380px; line-height:1.6;">อัปโหลดไฟล์รายชื่อพนักงาน ปริมาณงาน DC และยอดขาย Shop เพื่อเริ่มคำนวณ — หรือโหลดข้อมูลตัวอย่างเพื่อดูตัวอย่างระบบ</div>
+            <button onClick="{{ loadSampleData }}" style="padding:12px 28px; border:none; border-radius:11px; background:#1A6FA8; color:#fff; font-size:13.5px; font-weight:600; cursor:pointer; font-family:inherit;">โหลดข้อมูลตัวอย่าง →</button>
+          </div>
+        </sc-if>
+
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:12px;">
+          <div style="background:#fff; border-radius:16px; padding:22px 18px; text-align:center; box-shadow:0 1px 2px rgba(20,30,50,0.04), 0 8px 24px rgba(20,30,50,0.03);">
+            <div style="width:36px; height:36px; border-radius:9px; background:#c9f4d7; margin:0 auto 10px; display:flex; align-items:center; justify-content:center;"><i class="ti ti-users" style="color:#005226; font-size:18px;"></i></div>
+            <div style="font-size:13px; font-weight:600;">1. รายชื่อพนักงาน</div>
+            <div style="font-size:11px; color:#6d7277; margin-top:4px; line-height:1.6;">Employee List (.xlsx)<br>DC + Shop</div>
+          </div>
+          <div style="background:#fff; border-radius:16px; padding:22px 18px; text-align:center; box-shadow:0 1px 2px rgba(20,30,50,0.04), 0 8px 24px rgba(20,30,50,0.03);">
+            <div style="width:36px; height:36px; border-radius:9px; background:#d7ebfa; margin:0 auto 10px; display:flex; align-items:center; justify-content:center;"><i class="ti ti-truck-delivery" style="color:#1A6FA8; font-size:18px;"></i></div>
+            <div style="font-size:13px; font-weight:600;">2. Inbound DC (รายวัน)</div>
+            <div style="font-size:11px; color:#6d7277; margin-top:4px; line-height:1.6;">กรองเฉพาะวัน จ–ศ อัตโนมัติ</div>
+          </div>
+          <div style="background:#fff; border-radius:16px; padding:22px 18px; text-align:center; box-shadow:0 1px 2px rgba(20,30,50,0.04), 0 8px 24px rgba(20,30,50,0.03);">
+            <div style="width:36px; height:36px; border-radius:9px; background:#ffe6bf; margin:0 auto 10px; display:flex; align-items:center; justify-content:center;"><i class="ti ti-shopping-bag" style="color:#723f00; font-size:18px;"></i></div>
+            <div style="font-size:13px; font-weight:600;">3. ยอดขาย Shop (รายเดือน)</div>
+            <div style="font-size:11px; color:#6d7277; margin-top:4px; line-height:1.6;">รวมยอดทั้งเดือน</div>
+          </div>
+        </div>
+
+        <div style="background:#fff; border-radius:16px; padding:22px 24px; margin-top:14px; box-shadow:0 1px 2px rgba(20,30,50,0.04), 0 8px 24px rgba(20,30,50,0.03);">
+          <div style="font-size:13.5px; font-weight:700; margin-bottom:4px;">หรือเชื่อมต่อผ่าน Google Sheets</div>
+          <div style="font-size:11.5px; color:#6d7277; margin-bottom:16px; line-height:1.6;">วางลิงก์ Sheet ที่แชร์เป็น "Anyone with the link" — ข้อมูลเดิมจะยังอยู่จนกว่าจะซิงก์สำเร็จ</div>
+
+          <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:18px;">
+            <label style="font-size:12px; font-weight:600; color:#3e4347;">รายชื่อสาขา DC (คอลัมน์: ชื่อ, ภาค)</label>
+            <div style="display:flex; gap:8px;">
+              <input type="text" placeholder="https://docs.google.com/spreadsheets/d/..." value="{{ dcSheetUrl }}" onChange="{{ onDcSheetUrlChange }}" style="flex:1; height:36px; padding:0 12px; border-radius:9px; border:1px solid #d9dfe3; font-size:12.5px; font-family:inherit;">
+              <button onClick="{{ loadDcRosterFromSheet }}" style="padding:0 20px; border:none; border-radius:9px; background:#1A6FA8; color:#fff; font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit; white-space:nowrap;">ซิงก์ข้อมูล</button>
+            </div>
+            <sc-if value="{{ dcSheetMessage }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size:11.5px; color:{{ dcSheetMsgColor }};">{{ dcSheetMessage }}</div>
+            </sc-if>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:18px;">
+            <label style="font-size:12px; font-weight:600; color:#3e4347;">Inbound DC รายวัน (คอลัมน์ A=DC, B=วันที่, K=รวมรับเข้า)</label>
+            <div style="display:flex; gap:8px;">
+              <input type="text" placeholder="https://docs.google.com/spreadsheets/d/..." value="{{ dcInboundSheetUrl }}" onChange="{{ onDcInboundSheetUrlChange }}" style="flex:1; height:36px; padding:0 12px; border-radius:9px; border:1px solid #d9dfe3; font-size:12.5px; font-family:inherit;">
+              <button onClick="{{ loadDcInboundFromSheet }}" style="padding:0 20px; border:none; border-radius:9px; background:#1A6FA8; color:#fff; font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit; white-space:nowrap;">ซิงก์ข้อมูล</button>
+            </div>
+            <sc-if value="{{ dcInboundSheetMessage }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size:11.5px; color:{{ dcInboundSheetMsgColor }};">{{ dcInboundSheetMessage }}</div>
+            </sc-if>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:18px;">
+            <label style="font-size:12px; font-weight:600; color:#3e4347;">จำนวนพนักงาน DC รายเดือน (คอลัมน์: DC_Name, Jan..Dec)</label>
+            <div style="display:flex; gap:8px;">
+              <input type="text" placeholder="https://docs.google.com/spreadsheets/d/..." value="{{ dcEmpSheetUrl }}" onChange="{{ onDcEmpSheetUrlChange }}" style="flex:1; height:36px; padding:0 12px; border-radius:9px; border:1px solid #d9dfe3; font-size:12.5px; font-family:inherit;">
+              <button onClick="{{ loadDcEmpFromSheet }}" style="padding:0 20px; border:none; border-radius:9px; background:#1A6FA8; color:#fff; font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit; white-space:nowrap;">ซิงก์ข้อมูล</button>
+            </div>
+            <sc-if value="{{ dcEmpSheetMessage }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size:11.5px; color:{{ dcEmpSheetMsgColor }};">{{ dcEmpSheetMessage }}</div>
+            </sc-if>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:18px;">
+            <label style="font-size:12px; font-weight:600; color:#3e4347;">ยอดขาย Shop รายเดือน (คอลัมน์: ชื่อ, Jan..Dec)</label>
+            <div style="display:flex; gap:8px;">
+              <input type="text" placeholder="https://docs.google.com/spreadsheets/d/..." value="{{ shopRevenueSheetUrl }}" onChange="{{ onShopRevenueSheetUrlChange }}" style="flex:1; height:36px; padding:0 12px; border-radius:9px; border:1px solid #d9dfe3; font-size:12.5px; font-family:inherit;">
+              <button onClick="{{ loadShopRevenueFromSheet }}" style="padding:0 20px; border:none; border-radius:9px; background:#1A6FA8; color:#fff; font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit; white-space:nowrap;">ซิงก์ข้อมูล</button>
+            </div>
+            <sc-if value="{{ shopRevenueSheetMessage }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size:11.5px; color:{{ shopRevenueSheetMsgColor }};">{{ shopRevenueSheetMessage }}</div>
+            </sc-if>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <label style="font-size:12px; font-weight:600; color:#3e4347;">จำนวนพนักงาน Shop รายเดือน (คอลัมน์: Shop, Jan..Dec)</label>
+            <div style="display:flex; gap:8px;">
+              <input type="text" placeholder="https://docs.google.com/spreadsheets/d/..." value="{{ shopEmpSheetUrl }}" onChange="{{ onShopEmpSheetUrlChange }}" style="flex:1; height:36px; padding:0 12px; border-radius:9px; border:1px solid #d9dfe3; font-size:12.5px; font-family:inherit;">
+              <button onClick="{{ loadShopEmpFromSheet }}" style="padding:0 20px; border:none; border-radius:9px; background:#1A6FA8; color:#fff; font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit; white-space:nowrap;">ซิงก์ข้อมูล</button>
+            </div>
+            <sc-if value="{{ shopEmpSheetMessage }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size:11.5px; color:{{ shopEmpSheetMsgColor }};">{{ shopEmpSheetMessage }}</div>
+            </sc-if>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ============ DASHBOARD ============ -->
+      <sc-if value="{{ isDashboard }}" hint-placeholder-val="{{ true }}">
+        <div style="font-size:12px; color:#8a9095; font-weight:600; margin-bottom:10px;">ข้อมูลเดือน {{ selectedMonth }}</div>
+        <!-- Hero row: a few big numbers -->
+        <div style="{{ heroGridStyle }}">
+          <div onClick="{{ goToResultsDC }}" style="background:#fff; border-radius:18px; overflow:hidden; box-shadow:0 1px 2px rgba(20,30,50,0.05), 0 10px 28px rgba(20,30,50,0.05); cursor:pointer;">
+            <div style="height:4px; background:#1A6FA8;"></div>
+            <div style="padding:22px 22px 20px;">
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom:16px;">
+                <div style="width:26px; height:26px; border-radius:8px; background:#d7ebfa; color:#1A6FA8; display:flex; align-items:center; justify-content:center;"><i class="ti ti-building-store" style="font-size:14px;"></i></div>
+                <div style="font-size:13px; color:#1A6FA8; font-weight:700;">DC</div>
+              </div>
+              <div style="display:flex; align-items:baseline; gap:8px; margin-bottom:16px;">
+                <div style="font-family:'IBM Plex Mono',monospace; font-size:36px; font-weight:800; line-height:1;">{{ dcTotalCount }}</div>
+                <div style="font-size:12.5px; color:#6d7277;">สาขาทั้งหมด</div>
+              </div>
+              <div style="display:flex; gap:8px; margin-bottom:16px;">
+                <div style="flex:1; background:#eaf7ef; border-radius:10px; padding:10px 12px;">
+                  <div style="font-size:10.5px; color:#0a6b3c; font-weight:600;">เหมาะสม</div>
+                  <div style="font-family:'IBM Plex Mono',monospace; font-size:19px; font-weight:700; color:#005226;">{{ dcMeetCount }}</div>
+                </div>
+                <div onClick="{{ openDcUnderModal }}" style="flex:1; background:#fdece9; border-radius:10px; padding:10px 12px; cursor:pointer;">
+                  <div style="font-size:10.5px; color:#972527; font-weight:600;">ขาด</div>
+                  <div style="font-family:'IBM Plex Mono',monospace; font-size:19px; font-weight:700; color:#972527;">{{ dcUnderCount }}</div>
+                </div>
+                <div onClick="{{ openDcOverModal }}" style="flex:1; background:#fdf1de; border-radius:10px; padding:10px 12px; cursor:pointer;">
+                  <div style="font-size:10.5px; color:#723f00; font-weight:600;">เกิน</div>
+                  <div style="font-family:'IBM Plex Mono',monospace; font-size:19px; font-weight:700; color:#723f00;">{{ dcOverCount }}</div>
+                </div>
+              </div>
+              <div onClick="{{ goToRotation }}" style="display:flex; align-items:center; justify-content:space-between; background:#f6f9fb; border-radius:10px; padding:10px 14px; cursor:pointer;">
+                <div>
+                  <div style="font-size:10px; color:#8a9095; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:2px;">วิกฤตที่สุด</div>
+                  <div style="font-size:13.5px; font-weight:700;">{{ dcCriticalBranch.name }}</div>
+                </div>
+                <div style="font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:700; color:{{ dcCriticalBranch.color }};">{{ dcCriticalBranch.label }}</div>
+              </div>
+            </div>
+          </div>
+          <div onClick="{{ goToResultsShop }}" style="background:#fff; border-radius:18px; overflow:hidden; box-shadow:0 1px 2px rgba(20,30,50,0.05), 0 10px 28px rgba(20,30,50,0.05); cursor:pointer;">
+            <div style="height:4px; background:#1D9E75;"></div>
+            <div style="padding:22px 22px 20px;">
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom:16px;">
+                <div style="width:26px; height:26px; border-radius:8px; background:#d7f4e6; color:#1D9E75; display:flex; align-items:center; justify-content:center;"><i class="ti ti-shopping-bag" style="font-size:14px;"></i></div>
+                <div style="font-size:13px; color:#1D9E75; font-weight:700;">Shop</div>
+              </div>
+              <div style="display:flex; align-items:baseline; gap:8px; margin-bottom:16px;">
+                <div style="font-family:'IBM Plex Mono',monospace; font-size:36px; font-weight:800; line-height:1;">{{ shopTotalCount }}</div>
+                <div style="font-size:12.5px; color:#6d7277;">สาขาทั้งหมด</div>
+              </div>
+              <div style="display:flex; gap:8px; margin-bottom:16px;">
+                <div style="flex:1; background:#eaf7ef; border-radius:10px; padding:10px 12px;">
+                  <div style="font-size:10.5px; color:#0a6b3c; font-weight:600;">เหมาะสม</div>
+                  <div style="font-family:'IBM Plex Mono',monospace; font-size:19px; font-weight:700; color:#005226;">{{ shopMeetCount }}</div>
+                </div>
+                <div onClick="{{ openShopUnderModal }}" style="flex:1; background:#fdece9; border-radius:10px; padding:10px 12px; cursor:pointer;">
+                  <div style="font-size:10.5px; color:#972527; font-weight:600;">ขาด</div>
+                  <div style="font-family:'IBM Plex Mono',monospace; font-size:19px; font-weight:700; color:#972527;">{{ shopUnderCount }}</div>
+                </div>
+                <div onClick="{{ openShopOverModal }}" style="flex:1; background:#fdf1de; border-radius:10px; padding:10px 12px; cursor:pointer;">
+                  <div style="font-size:10.5px; color:#723f00; font-weight:600;">เกิน</div>
+                  <div style="font-family:'IBM Plex Mono',monospace; font-size:19px; font-weight:700; color:#723f00;">{{ shopOverCount }}</div>
+                </div>
+              </div>
+              <div onClick="{{ goToRotation }}" style="display:flex; align-items:center; justify-content:space-between; background:#f6f9fb; border-radius:10px; padding:10px 14px; cursor:pointer;">
+                <div>
+                  <div style="font-size:10px; color:#8a9095; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:2px;">วิกฤตที่สุด</div>
+                  <div style="font-size:13.5px; font-weight:700;">{{ shopCriticalBranch.name }}</div>
+                </div>
+                <div style="font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:700; color:{{ shopCriticalBranch.color }};">{{ shopCriticalBranch.label }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Trend charts -->
+        <div style="{{ trendGridStyle }}">
+          <div style="background:#fff; border-radius:16px; padding:18px 20px; box-shadow:0 1px 2px rgba(20,30,50,0.04), 0 8px 24px rgba(20,30,50,0.03);">
+            <div style="font-size:12.5px; font-weight:700; margin-bottom:10px;">แนวโน้ม Productivity DC (กล่อง/คน/ชม.)</div>
+            <div style="position:relative; width:100%;">
+              <svg width="{{ trendWidth }}" height="{{ trendHeight }}" viewBox="0 0 {{ trendWidth }} {{ trendHeight }}" style="display:block; width:100%; height:auto;">
+                <defs>
+                  <linearGradient id="dcTrendGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#1A6FA8" stop-opacity="0.22"></stop>
+                    <stop offset="100%" stop-color="#1A6FA8" stop-opacity="0"></stop>
+                  </linearGradient>
+                </defs>
+                <path d="{{ trendAreaPath }}" fill="url(#dcTrendGrad)" stroke="none"></path>
+                <path d="{{ trendSmoothPath }}" fill="none" stroke="#1A6FA8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                <sc-for list="{{ trendPoints }}" as="tp" hint-placeholder-count="6">
+                  <circle cx="{{ tp.x }}" cy="{{ tp.y }}" r="6" fill="#fff" stroke="#1A6FA8" stroke-width="2.5"></circle>
+                </sc-for>
+              </svg>
+              <sc-for list="{{ trendPoints }}" as="tp" hint-placeholder-count="6">
+                <div style="position:absolute; left:{{ tp.xPct }}%; top:{{ tp.valueYPct }}%; transform:translate(-50%,-50%); font-size:12.5px; font-weight:700; color:#0D4F7C; white-space:nowrap;">{{ tp.value }}</div>
+                <div style="position:absolute; left:{{ tp.xPct }}%; top:{{ tp.labelYPct }}%; transform:translate(-50%,-50%); font-size:11px; color:#8a9095; white-space:nowrap;">{{ tp.month }}</div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="background:#fff; border-radius:16px; padding:18px 20px; box-shadow:0 1px 2px rgba(20,30,50,0.04), 0 8px 24px rgba(20,30,50,0.03);">
+            <div style="font-size:12.5px; font-weight:700; margin-bottom:10px;">แนวโน้มยอดขาย Shop (บาท/คน/เดือน)</div>
+            <div style="position:relative; width:100%;">
+              <svg width="{{ trendWidth }}" height="{{ trendHeight }}" viewBox="0 0 {{ trendWidth }} {{ trendHeight }}" style="display:block; width:100%; height:auto;">
+                <defs>
+                  <linearGradient id="shopTrendGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#1D9E75" stop-opacity="0.22"></stop>
+                    <stop offset="100%" stop-color="#1D9E75" stop-opacity="0"></stop>
+                  </linearGradient>
+                </defs>
+                <path d="{{ shopTrendAreaPath }}" fill="url(#shopTrendGrad)" stroke="none"></path>
+                <path d="{{ shopTrendSmoothPath }}" fill="none" stroke="#1D9E75" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                <sc-for list="{{ shopTrendPoints }}" as="tp" hint-placeholder-count="6">
+                  <circle cx="{{ tp.x }}" cy="{{ tp.y }}" r="6" fill="#fff" stroke="#1D9E75" stroke-width="2.5"></circle>
+                </sc-for>
+              </svg>
+              <sc-for list="{{ shopTrendPoints }}" as="tp" hint-placeholder-count="6">
+                <div style="position:absolute; left:{{ tp.xPct }}%; top:{{ tp.valueYPct }}%; transform:translate(-50%,-50%); font-size:12.5px; font-weight:700; color:#0f7a55; white-space:nowrap;">{{ tp.value }}</div>
+                <div style="position:absolute; left:{{ tp.xPct }}%; top:{{ tp.labelYPct }}%; transform:translate(-50%,-50%); font-size:11px; color:#8a9095; white-space:nowrap;">{{ tp.month }}</div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+
+        <!-- DC vs Shop + Region breakdown -->
+        <div style="display:grid; grid-template-columns:1fr; gap:16px; margin-bottom:18px;">
+          <div style="background:#fff; border-radius:16px; padding:18px 20px; box-shadow:0 1px 2px rgba(20,30,50,0.04), 0 8px 24px rgba(20,30,50,0.03);">
+            <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:10px;">
+              <div style="font-size:12.5px; font-weight:700;">แยกตามภาค</div>
+              <div style="font-size:11px; color:#8a9095;">ข้อมูลเดือน {{ selectedMonth }} · หน่วย: จำนวนสาขา</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px; padding-bottom:6px; font-size:10.5px; color:#8a9095; font-weight:600; text-transform:uppercase; letter-spacing:0.04em;">
+              <div style="flex:1;">ภาค</div>
+              <div style="width:56px; text-align:right;">เหมาะสม</div>
+              <div style="width:56px; text-align:right;">ขาด</div>
+              <div style="width:56px; text-align:right;">เกิน</div>
+            </div>
+            <sc-for list="{{ regionDashRows }}" as="rg" hint-placeholder-count="6">
+              <div onClick="{{ rg.onClick }}" style="display:flex; align-items:center; gap:10px; padding:6px 0; border-top:1px solid #ebeff2; font-size:12px; cursor:pointer;">
+                <div style="flex:1; font-weight:600;">{{ rg.region }}</div>
+                <div style="color:#005226; font-family:'IBM Plex Mono',monospace; width:56px; text-align:right;">{{ rg.meetLabel }}</div>
+                <div style="color:#972527; font-family:'IBM Plex Mono',monospace; width:56px; text-align:right;">{{ rg.underLabel }}</div>
+                <div style="color:#723f00; font-family:'IBM Plex Mono',monospace; width:56px; text-align:right;">{{ rg.overLabel }}</div>
+              </div>
+            </sc-for>
+            <sc-if value="{{ regionDashMore }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size:11px; color:#8a9095; margin-top:8px;">อีก {{ regionDashMore }} ภาค</div>
+            </sc-if>
+            <div style="display:flex; align-items:center; gap:10px; padding:8px 0 2px; border-top:2px solid #e3e7ea; font-size:12px; margin-top:4px;">
+              <div style="flex:1; font-weight:700;">รวมทั้งหมด</div>
+              <div style="color:#005226; font-family:'IBM Plex Mono',monospace; width:56px; text-align:right; font-weight:700;">{{ regionDashTotal.meetLabel }}</div>
+              <div style="color:#972527; font-family:'IBM Plex Mono',monospace; width:56px; text-align:right; font-weight:700;">{{ regionDashTotal.underLabel }}</div>
+              <div style="color:#723f00; font-family:'IBM Plex Mono',monospace; width:56px; text-align:right; font-weight:700;">{{ regionDashTotal.overLabel }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Critical lists -->
+        <div style="{{ criticalGridStyle }}">
+          <div style="background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 1px 2px rgba(20,30,50,0.04), 0 8px 24px rgba(20,30,50,0.03);">
+            <div style="padding:12px 18px; background:#ffd7d0; font-size:12.5px; font-weight:700; color:#972527;">DC กำลังพลขาด — {{ dcUnderCount }} สาขา</div>
+            <sc-for list="{{ dcUnderList }}" as="r" hint-placeholder-count="3">
+              <div onClick="{{ r.onClick }}" style="display:flex; justify-content:space-between; align-items:center; padding:10px 18px; border-top:1px solid #ebeff2; font-size:12px; cursor:pointer;">
+                <b>{{ r.name }}</b>
+                <div style="font-family:'IBM Plex Mono',monospace; color:#972527; font-weight:600;">{{ r.diffLabel }}</div>
+              </div>
+            </sc-for>
+            <sc-if value="{{ dcUnderMore }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:8px 18px; border-top:1px solid #ebeff2; font-size:11px; color:#8a9095;">อีก {{ dcUnderMore }} สาขา — ดูที่ "สถานะกำลังพล"</div>
+            </sc-if>
+          </div>
+          <div style="background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 1px 2px rgba(20,30,50,0.04), 0 8px 24px rgba(20,30,50,0.03);">
+            <div style="padding:12px 18px; background:#ffe6bf; font-size:12.5px; font-weight:700; color:#723f00;">DC กำลังพลเกิน — {{ dcOverCount }} สาขา</div>
+            <sc-for list="{{ dcOverList }}" as="r" hint-placeholder-count="3">
+              <div onClick="{{ r.onClick }}" style="display:flex; justify-content:space-between; align-items:center; padding:10px 18px; border-top:1px solid #ebeff2; font-size:12px; cursor:pointer;">
+                <b>{{ r.name }}</b>
+                <div style="font-family:'IBM Plex Mono',monospace; color:#723f00; font-weight:600;">{{ r.diffLabel }}</div>
+              </div>
+            </sc-for>
+            <sc-if value="{{ dcOverMore }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:8px 18px; border-top:1px solid #ebeff2; font-size:11px; color:#8a9095;">อีก {{ dcOverMore }} สาขา — ดูที่ "สถานะกำลังพล"</div>
+            </sc-if>
+          </div>
+        </div>
+        <div style="{{ shopCriticalGridStyle }}">
+          <div style="background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 1px 2px rgba(20,30,50,0.04), 0 8px 24px rgba(20,30,50,0.03);">
+            <div style="padding:12px 18px; background:#ffd7d0; font-size:12.5px; font-weight:700; color:#972527;">Shop กำลังพลขาด — {{ shopUnderCount }} สาขา</div>
+            <sc-for list="{{ shopUnderList }}" as="r" hint-placeholder-count="3">
+              <div onClick="{{ r.onClick }}" style="display:flex; justify-content:space-between; align-items:center; padding:10px 18px; border-top:1px solid #ebeff2; font-size:12px; cursor:pointer;">
+                <b>{{ r.name }}</b>
+                <div style="font-family:'IBM Plex Mono',monospace; color:#972527; font-weight:600;">{{ r.diffLabel }}</div>
+              </div>
+            </sc-for>
+            <sc-if value="{{ shopUnderMore }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:8px 18px; border-top:1px solid #ebeff2; font-size:11px; color:#8a9095;">อีก {{ shopUnderMore }} สาขา — ดูที่ "สถานะกำลังพล"</div>
+            </sc-if>
+          </div>
+          <div style="background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 1px 2px rgba(20,30,50,0.04), 0 8px 24px rgba(20,30,50,0.03);">
+            <div style="padding:12px 18px; background:#ffe6bf; font-size:12.5px; font-weight:700; color:#723f00;">Shop กำลังพลเกิน — {{ shopOverCount }} สาขา</div>
+            <sc-for list="{{ shopOverList }}" as="r" hint-placeholder-count="3">
+              <div onClick="{{ r.onClick }}" style="display:flex; justify-content:space-between; align-items:center; padding:10px 18px; border-top:1px solid #ebeff2; font-size:12px; cursor:pointer;">
+                <b>{{ r.name }}</b>
+                <div style="font-family:'IBM Plex Mono',monospace; color:#723f00; font-weight:600;">{{ r.diffLabel }}</div>
+              </div>
+            </sc-for>
+            <sc-if value="{{ shopOverMore }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:8px 18px; border-top:1px solid #ebeff2; font-size:11px; color:#8a9095;">อีก {{ shopOverMore }} สาขา — ดูที่ "สถานะกำลังพล"</div>
+            </sc-if>
+          </div>
+        </div>
+
+        <!-- Top/Bottom 5 -->
+        <div style="{{ top5GridStyle }}">
+          <div style="background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 1px 2px rgba(20,30,50,0.04), 0 8px 24px rgba(20,30,50,0.03);">
+            <div style="padding:12px 18px; font-size:12.5px; font-weight:700; color:#005226; background:#eaf7ef; border-bottom:1px solid #ebeff2; display:flex; align-items:center; gap:6px;"><i class="ti ti-trending-up" style="font-size:16px;"></i> DC Productivity สูงสุด 5</div>
+            <sc-for list="{{ dcTop5 }}" as="r" hint-placeholder-count="5">
+              <div onClick="{{ r.onClick }}" style="display:flex; justify-content:space-between; align-items:center; padding:9px 18px; border-top:1px solid #f4f6f7; font-size:12px; cursor:pointer;">
+                <div style="display:flex; align-items:center; gap:8px;"><span style="color:#8a9095; font-family:'IBM Plex Mono',monospace; width:14px;">{{ r.rank }}</span><b>{{ r.name }}</b></div>
+                <div style="font-family:'IBM Plex Mono',monospace; color:#005226; font-weight:600;">{{ r.value }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 1px 2px rgba(20,30,50,0.04), 0 8px 24px rgba(20,30,50,0.03);">
+            <div style="padding:12px 18px; font-size:12.5px; font-weight:700; color:#972527; background:#fdece9; border-bottom:1px solid #ebeff2; display:flex; align-items:center; gap:6px;"><i class="ti ti-trending-down" style="font-size:16px;"></i> DC Productivity ต่ำสุด 5</div>
+            <sc-for list="{{ dcBottom5 }}" as="r" hint-placeholder-count="5">
+              <div onClick="{{ r.onClick }}" style="display:flex; justify-content:space-between; align-items:center; padding:9px 18px; border-top:1px solid #f4f6f7; font-size:12px; cursor:pointer;">
+                <div style="display:flex; align-items:center; gap:8px;"><span style="color:#8a9095; font-family:'IBM Plex Mono',monospace; width:14px;">{{ r.rank }}</span><b>{{ r.name }}</b></div>
+                <div style="font-family:'IBM Plex Mono',monospace; color:#972527; font-weight:600;">{{ r.value }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="{{ bottom5GridStyle }}">
+          <div style="background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 1px 2px rgba(20,30,50,0.04), 0 8px 24px rgba(20,30,50,0.03);">
+            <div style="padding:12px 18px; font-size:12.5px; font-weight:700; color:#005226; background:#eaf7ef; border-bottom:1px solid #ebeff2; display:flex; align-items:center; gap:6px;"><i class="ti ti-trending-up" style="font-size:16px;"></i> Shop บาท/คน สูงสุด 5</div>
+            <sc-for list="{{ shopTop5 }}" as="r" hint-placeholder-count="5">
+              <div onClick="{{ r.onClick }}" style="display:flex; justify-content:space-between; align-items:center; padding:9px 18px; border-top:1px solid #f4f6f7; font-size:12px; cursor:pointer;">
+                <div style="display:flex; align-items:center; gap:8px;"><span style="color:#8a9095; font-family:'IBM Plex Mono',monospace; width:14px;">{{ r.rank }}</span><b>{{ r.name }}</b></div>
+                <div style="font-family:'IBM Plex Mono',monospace; color:#005226; font-weight:600;">{{ r.value }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 1px 2px rgba(20,30,50,0.04), 0 8px 24px rgba(20,30,50,0.03);">
+            <div style="padding:12px 18px; font-size:12.5px; font-weight:700; color:#972527; background:#fdece9; border-bottom:1px solid #ebeff2; display:flex; align-items:center; gap:6px;"><i class="ti ti-trending-down" style="font-size:16px;"></i> Shop บาท/คน ต่ำสุด 5</div>
+            <sc-for list="{{ shopBottom5 }}" as="r" hint-placeholder-count="5">
+              <div onClick="{{ r.onClick }}" style="display:flex; justify-content:space-between; align-items:center; padding:9px 18px; border-top:1px solid #f4f6f7; font-size:12px; cursor:pointer;">
+                <div style="display:flex; align-items:center; gap:8px;"><span style="color:#8a9095; font-family:'IBM Plex Mono',monospace; width:14px;">{{ r.rank }}</span><b>{{ r.name }}</b></div>
+                <div style="font-family:'IBM Plex Mono',monospace; color:#972527; font-weight:600;">{{ r.value }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+      </sc-if>
+
+      <!-- ============ RESULTS DC ============ -->
+      <sc-if value="{{ isResultsDC }}" hint-placeholder-val="{{ false }}">
+        <div style="{{ dcKpiGridStyle }}">
+          <button onClick="{{ onDcFilterAll }}" style="{{ dcKpiAllStyle }}">
+            <i class="ti ti-building-store" style="position:absolute; right:8px; top:8px; font-size:36px; color:#eef2f5;"></i>
+            <div style="font-size:11px; color:#6d7277; position:relative;">DC ทั้งหมด</div><div style="font-family:'IBM Plex Mono',monospace; font-size:30px; font-weight:800; margin-top:6px; position:relative;">{{ dcResultsTotal }}</div>
+          </button>
+          <button onClick="{{ onDcFilterUnder }}" style="{{ dcKpiUnderStyle }}">
+            <i class="ti ti-alert-triangle" style="position:absolute; right:8px; top:8px; font-size:36px; color:#fdece9;"></i>
+            <div style="font-size:11px; color:#972527; position:relative;">กำลังพลขาด</div><div style="font-family:'IBM Plex Mono',monospace; font-size:30px; font-weight:800; margin-top:6px; color:#972527; position:relative;">{{ dcResultsUnderCount }}</div>
+          </button>
+          <button onClick="{{ onDcFilterOver }}" style="{{ dcKpiOverStyle }}">
+            <i class="ti ti-user-plus" style="position:absolute; right:8px; top:8px; font-size:36px; color:#fdf1de;"></i>
+            <div style="font-size:11px; color:#723f00; position:relative;">กำลังพลเกิน</div><div style="font-family:'IBM Plex Mono',monospace; font-size:30px; font-weight:800; margin-top:6px; color:#723f00; position:relative;">{{ dcResultsOverCount }}</div>
+          </button>
+          <div style="background:#fff; border-radius:14px; padding:16px 18px; box-shadow:0 1px 2px rgba(20,30,50,0.04), 0 8px 24px rgba(20,30,50,0.03); position:relative; overflow:hidden;">
+            <i class="ti ti-chart-bar" style="position:absolute; right:8px; top:8px; font-size:36px; color:#d7ebfa;"></i>
+            <div style="font-size:11px; color:#6d7277; position:relative;">Productivity เฉลี่ย</div><div style="font-family:'IBM Plex Mono',monospace; font-size:30px; font-weight:800; margin-top:6px; color:#1A6FA8; position:relative;">{{ dcResultsAvgProd }}</div>
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap;">
+          <input type="text" placeholder="ค้นหาสาขา..." value="{{ dcQuery }}" onChange="{{ onDcQueryChange }}" style="flex:1; min-width:160px; height:36px; padding:0 14px; border-radius:9px; border:1px solid #d9dfe3; font-size:12.5px; font-family:inherit;">
+          <select value="{{ dcRegionFilter }}" onChange="{{ onDcRegionFilterChange }}" style="height:36px; padding:0 12px; border-radius:9px; border:1px solid #d9dfe3; font-size:12.5px; background:#fff; font-family:inherit;">
+            <option value="">ทุกภาค</option>
+            <sc-for list="{{ regionOptions }}" as="rgn" hint-placeholder-count="3"><option value="{{ rgn }}">{{ rgn }}</option></sc-for>
+          </select>
+          <button onClick="{{ dcExportCsv }}" style="height:36px; padding:0 16px; border-radius:9px; border:1px solid #d9dfe3; font-size:12.5px; background:#fff; font-family:inherit; font-weight:600; color:#1A6FA8; cursor:pointer; display:flex; align-items:center; gap:6px;"><i class="ti ti-download"></i>Export CSV</button>
+        </div>
+        <div style="background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 1px 2px rgba(20,30,50,0.04), 0 8px 24px rgba(20,30,50,0.03);">
+          <div style="{{ tableScrollStyle }}"><table style="{{ tableMinWidthStyle }}">
+            <thead><tr>
+              <th style="padding:10px 14px; text-align:center; font-size:11px; color:#6d7277; background:#f6f9fb; width:44px;">#</th>
+              <sc-for list="{{ dcColumns }}" as="col" hint-placeholder-count="8">
+                <th onClick="{{ col.onClick }}" style="{{ col.style }}">{{ col.displayLabel }}</th>
+              </sc-for>
+              <th style="padding:10px 14px; text-align:left; font-size:11px; color:#6d7277; background:#f6f9fb;">สถานะ</th>
+            </tr></thead>
+            <tbody>
+              <sc-for list="{{ dcTableRows }}" as="r" hint-placeholder-count="8">
+                <tr>
+                  <td style="padding:9px 14px; border-top:1px solid #ebeff2; text-align:center; color:#9aa0a5; font-family:'IBM Plex Mono',monospace;">{{ r.idx }}</td>
+                  <td style="padding:9px 14px; border-top:1px solid #ebeff2; font-weight:600;">{{ r.name }}</td>
+                  <td style="padding:9px 14px; border-top:1px solid #ebeff2; text-align:right; font-family:'IBM Plex Mono',monospace;">{{ r.emp }}</td>
+                  <td style="padding:9px 14px; border-top:1px solid #ebeff2; text-align:right; font-family:'IBM Plex Mono',monospace;">{{ r.avg }}</td>
+                  <td style="padding:9px 14px; border-top:1px solid #ebeff2; text-align:right; font-family:'IBM Plex Mono',monospace; font-weight:600;">{{ r.prodDay }}</td>
+                  <td style="padding:9px 14px; border-top:1px solid #ebeff2; text-align:right; font-family:'IBM Plex Mono',monospace; font-weight:600;">{{ r.prod }}</td>
+                  <td style="padding:9px 14px; border-top:1px solid #ebeff2; text-align:right; font-family:'IBM Plex Mono',monospace; color:#1A6FA8;">{{ r.req }}</td>
+                  <td style="padding:9px 14px; border-top:1px solid #ebeff2; text-align:right; font-family:'IBM Plex Mono',monospace; color:{{ r.diffColor }};">{{ r.diffLabel }}</td>
+
+                  <td style="padding:9px 14px; border-top:1px solid #ebeff2;"><span style="font-size:10.5px; font-weight:600; padding:3px 9px; border-radius:20px; background:{{ r.statusBg }}; color:{{ r.statusColor }};">{{ r.statusLabel }}</span></td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table></div>
+        </div>
+      </sc-if>
+
+      <!-- ============ RESULTS SHOP ============ -->
+      <sc-if value="{{ isResultsShop }}" hint-placeholder-val="{{ false }}">
+        <div style="{{ shopKpiGridStyle }}">
+          <button onClick="{{ onShopFilterAll }}" style="{{ shopKpiAllStyle }}">
+            <i class="ti ti-shopping-bag" style="position:absolute; right:8px; top:8px; font-size:36px; color:#d7f4e6;"></i>
+            <div style="font-size:11px; color:#6d7277; position:relative;">Shop ทั้งหมด</div><div style="font-family:'IBM Plex Mono',monospace; font-size:30px; font-weight:800; margin-top:6px; position:relative;">{{ shopResultsTotal }}</div>
+          </button>
+          <button onClick="{{ onShopFilterUnder }}" style="{{ shopKpiUnderStyle }}">
+            <i class="ti ti-alert-triangle" style="position:absolute; right:8px; top:8px; font-size:36px; color:#fdece9;"></i>
+            <div style="font-size:11px; color:#972527; position:relative;">กำลังพลขาด</div><div style="font-family:'IBM Plex Mono',monospace; font-size:30px; font-weight:800; margin-top:6px; color:#972527; position:relative;">{{ shopResultsUnderCount }}</div>
+          </button>
+          <button onClick="{{ onShopFilterOver }}" style="{{ shopKpiOverStyle }}">
+            <i class="ti ti-user-plus" style="position:absolute; right:8px; top:8px; font-size:36px; color:#fdf1de;"></i>
+            <div style="font-size:11px; color:#723f00; position:relative;">กำลังพลเกิน</div><div style="font-family:'IBM Plex Mono',monospace; font-size:30px; font-weight:800; margin-top:6px; color:#723f00; position:relative;">{{ shopResultsOverCount }}</div>
+          </button>
+          <div style="background:#fff; border-radius:14px; padding:16px 18px; box-shadow:0 1px 2px rgba(20,30,50,0.04), 0 8px 24px rgba(20,30,50,0.03); position:relative; overflow:hidden;">
+            <i class="ti ti-coin" style="position:absolute; right:8px; top:8px; font-size:36px; color:#eef2f5;"></i>
+            <div style="font-size:11px; color:#6d7277; position:relative;">ค่าเฉลี่ย บาท/คน</div><div style="font-family:'IBM Plex Mono',monospace; font-size:30px; font-weight:800; margin-top:6px; color:#565e64; position:relative;">{{ shopResultsAvgBpp }}</div>
+          </div>
+          <div style="background:#fff; border-radius:14px; padding:16px 18px; box-shadow:0 1px 2px rgba(20,30,50,0.04), 0 8px 24px rgba(20,30,50,0.03); position:relative; overflow:hidden;">
+            <i class="ti ti-cash" style="position:absolute; right:8px; top:8px; font-size:36px; color:#d7ebfa;"></i>
+            <div style="font-size:11px; color:#6d7277; position:relative;">ยอดขายรวม</div><div style="font-family:'IBM Plex Mono',monospace; font-size:30px; font-weight:800; margin-top:6px; color:#1A6FA8; position:relative;">{{ shopResultsRevenue }}</div>
+          </div>
+        </div>
+        <div style="font-size:11.5px; color:#6d7277; margin-bottom:12px;">เกณฑ์ {{ settings.shopTarget }} บาท/คน/เดือน</div>
+        <div style="display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap;">
+          <input type="text" placeholder="ค้นหาสาขา..." value="{{ shopQuery }}" onChange="{{ onShopQueryChange }}" style="flex:1; min-width:160px; height:36px; padding:0 14px; border-radius:9px; border:1px solid #d9dfe3; font-size:12.5px; font-family:inherit;">
+          <select value="{{ shopRegionFilter }}" onChange="{{ onShopRegionFilterChange }}" style="height:36px; padding:0 12px; border-radius:9px; border:1px solid #d9dfe3; font-size:12.5px; background:#fff; font-family:inherit;">
+            <option value="">ทุกภาค</option>
+            <sc-for list="{{ regionOptions }}" as="rgn" hint-placeholder-count="3"><option value="{{ rgn }}">{{ rgn }}</option></sc-for>
+          </select>
+          <button onClick="{{ shopExportCsv }}" style="height:36px; padding:0 16px; border-radius:9px; border:1px solid #d9dfe3; font-size:12.5px; background:#fff; font-family:inherit; font-weight:600; color:#1A6FA8; cursor:pointer; display:flex; align-items:center; gap:6px;"><i class="ti ti-download"></i>Export CSV</button>
+        </div>
+        <div style="background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 1px 2px rgba(20,30,50,0.04), 0 8px 24px rgba(20,30,50,0.03);">
+          <div style="{{ tableScrollStyle }}"><table style="{{ tableMinWidthStyle }}">
+            <thead><tr>
+              <th style="padding:10px 14px; text-align:center; font-size:11px; color:#6d7277; background:#f6f9fb; width:44px;">#</th>
+              <sc-for list="{{ shopColumns }}" as="col" hint-placeholder-count="6">
+                <th onClick="{{ col.onClick }}" style="{{ col.style }}">{{ col.displayLabel }}</th>
+              </sc-for>
+              <th style="padding:10px 14px; text-align:left; font-size:11px; color:#6d7277; background:#f6f9fb;">สถานะ</th>
+            </tr></thead>
+            <tbody>
+              <sc-for list="{{ shopTableRows }}" as="s" hint-placeholder-count="6">
+                <tr>
+                  <td style="padding:9px 14px; border-top:1px solid #ebeff2; text-align:center; color:#9aa0a5; font-family:'IBM Plex Mono',monospace;">{{ s.idx }}</td>
+                  <td style="padding:9px 14px; border-top:1px solid #ebeff2; font-weight:600;">{{ s.name }}</td>
+                  <td style="padding:9px 14px; border-top:1px solid #ebeff2; text-align:right; font-family:'IBM Plex Mono',monospace;">{{ s.revenueLabel }}</td>
+                  <td style="padding:9px 14px; border-top:1px solid #ebeff2; text-align:right; font-family:'IBM Plex Mono',monospace;">{{ s.emp }}</td>
+                  <td style="padding:9px 14px; border-top:1px solid #ebeff2; text-align:right; font-family:'IBM Plex Mono',monospace;">{{ s.bppLabel }}</td>
+                  <td style="padding:9px 14px; border-top:1px solid #ebeff2; text-align:right; font-family:'IBM Plex Mono',monospace; color:#1A6FA8;">{{ s.req }}</td>
+                  <td style="padding:9px 14px; border-top:1px solid #ebeff2; text-align:right; font-family:'IBM Plex Mono',monospace; color:{{ s.diffColor }};">{{ s.diffLabel }}</td>
+
+                  <td style="padding:9px 14px; border-top:1px solid #ebeff2;"><span style="font-size:10.5px; font-weight:600; padding:3px 9px; border-radius:20px; background:{{ s.statusBg }}; color:{{ s.statusColor }};">{{ s.statusLabel }}</span></td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table></div>
+        </div>
+      </sc-if>
+
+      <!-- ============ STAFFING ============ -->
+      <sc-if value="{{ isStaffing }}" hint-placeholder-val="{{ false }}">
+        <div style="{{ staffKpiGridStyle }}">
+          <sc-for list="{{ staffFilterCards }}" as="c" hint-placeholder-count="4">
+            <div onClick="{{ c.onClick }}" style="{{ c.style }}">
+              <i class="{{ c.icon }}" style="position:absolute; right:8px; top:8px; font-size:36px; color:{{ c.iconColor }};"></i>
+              <div style="font-size:11px; color:#6d7277; position:relative;">{{ c.label }}</div>
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:30px; font-weight:800; margin-top:6px; color:{{ c.valColor }}; position:relative;">{{ c.value }}</div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap;">
+          <input type="text" placeholder="ค้นหาสาขา..." value="{{ staffQuery }}" onChange="{{ onStaffQueryChange }}" style="flex:1; min-width:160px; height:36px; padding:0 14px; border-radius:9px; border:1px solid #d9dfe3; font-size:12.5px; font-family:inherit;">
+          <div style="display:flex; gap:0; background:#eef2f5; border-radius:9px; padding:4px;">
+            <button onClick="{{ onStaffTypeAll }}" style="{{ staffTypeAllStyle }}">ทุกประเภท</button>
+            <button onClick="{{ onStaffTypeDc }}" style="{{ staffTypeDcStyle }}">DC</button>
+            <button onClick="{{ onStaffTypeShop }}" style="{{ staffTypeShopStyle }}">Shop</button>
+          </div>
+        </div>
+
+        <div style="background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 1px 2px rgba(20,30,50,0.04), 0 8px 24px rgba(20,30,50,0.03);">
+          <div style="{{ tableScrollStyle }}"><table style="{{ tableMinWidthStyle }}">
+            <thead><tr>
+              <th style="padding:10px 14px; text-align:center; font-size:11px; color:#6d7277; background:#f6f9fb; width:44px;">#</th>
+              <th onClick="{{ onStaffSortName }}" style="padding:10px 14px; text-align:left; font-size:11px; color:#6d7277; background:#f6f9fb; cursor:pointer; user-select:none;">{{ staffColName }}</th>
+              <th onClick="{{ onStaffSortEmp }}" style="padding:10px 14px; text-align:right; font-size:11px; color:#6d7277; background:#f6f9fb; cursor:pointer; user-select:none;">{{ staffColEmp }}</th>
+              <th onClick="{{ onStaffSortReq }}" style="padding:10px 14px; text-align:right; font-size:11px; color:#6d7277; background:#f6f9fb; cursor:pointer; user-select:none;">{{ staffColReq }}</th>
+              <th onClick="{{ onStaffSortDiff }}" style="padding:10px 14px; text-align:right; font-size:11px; color:#6d7277; background:#f6f9fb; cursor:pointer; user-select:none;">{{ staffColDiff }}</th>
+              <th onClick="{{ onStaffSortStatus }}" style="padding:10px 14px; text-align:left; font-size:11px; color:#6d7277; background:#f6f9fb; cursor:pointer; user-select:none;">{{ staffColStatus }}</th>
+            </tr></thead>
+            <tbody>
+              <sc-for list="{{ staffTableRows }}" as="r" hint-placeholder-count="6">
+                <tr>
+                  <td style="padding:9px 14px; border-top:1px solid #ebeff2; text-align:center; color:#9aa0a5; font-family:'IBM Plex Mono',monospace;">{{ r.idx }}</td>
+                  <td style="padding:9px 14px; border-top:1px solid #ebeff2; font-weight:600;">{{ r.name }}</td>
+                  <td style="padding:9px 14px; border-top:1px solid #ebeff2; text-align:right; font-family:'IBM Plex Mono',monospace;">{{ r.emp }}</td>
+                  <td style="padding:9px 14px; border-top:1px solid #ebeff2; text-align:right; font-family:'IBM Plex Mono',monospace; color:#1A6FA8;">{{ r.req }}</td>
+                  <td style="padding:9px 14px; border-top:1px solid #ebeff2; text-align:right; font-family:'IBM Plex Mono',monospace; color:{{ r.diffColor }};">{{ r.diffLabel }}</td>
+                  <td style="padding:9px 14px; border-top:1px solid #ebeff2;"><span style="font-size:10.5px; font-weight:600; padding:3px 9px; border-radius:20px; background:{{ r.statusBg }}; color:{{ r.statusColor }};">{{ r.statusLabel }}</span></td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table></div>
+        </div>
+      </sc-if>
+
+      <!-- ============ TREND ============ -->
+      <sc-if value="{{ isTrend }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; align-items:center;">
+          <div style="display:flex; gap:0; background:#eef2f5; border-radius:10px; padding:4px; width:fit-content;">
+            <button onClick="{{ setTrendTabDc }}" style="{{ trendTabDcStyle }}">DC</button>
+            <button onClick="{{ setTrendTabShop }}" style="{{ trendTabShopStyle }}">Shop</button>
+          </div>
+          <input type="text" placeholder="ค้นหาสาขา..." value="{{ trendQuery }}" onChange="{{ onTrendQueryChange }}" style="flex:1; min-width:160px; height:36px; padding:0 14px; border-radius:9px; border:1px solid #d9dfe3; font-size:12.5px; font-family:inherit;">
+          <sc-if value="{{ isTrendDc }}" hint-placeholder-val="{{ true }}">
+            <button onClick="{{ trendDcExportCsv }}" style="height:36px; padding:0 16px; border-radius:9px; border:1px solid #d9dfe3; font-size:12.5px; background:#fff; font-family:inherit; font-weight:600; color:#1A6FA8; cursor:pointer; display:flex; align-items:center; gap:6px;"><i class="ti ti-download"></i>Export CSV</button>
+          </sc-if>
+          <sc-if value="{{ isTrendShop }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ trendShopExportCsv }}" style="height:36px; padding:0 16px; border-radius:9px; border:1px solid #d9dfe3; font-size:12.5px; background:#fff; font-family:inherit; font-weight:600; color:#1A6FA8; cursor:pointer; display:flex; align-items:center; gap:6px;"><i class="ti ti-download"></i>Export CSV</button>
+          </sc-if>
+        </div>
+        <sc-if value="{{ isTrendDc }}" hint-placeholder-val="{{ true }}">
+        <div style="font-size:13px; font-weight:700; margin-bottom:12px;">Productivity DC (กล่อง/คน/ชม.)</div>
+        <div style="background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 1px 2px rgba(20,30,50,0.04), 0 8px 24px rgba(20,30,50,0.03);">
+        <div style="{{ tableScrollStyle }}"><table style="{{ tableMinWidthStyle }}">
+          <thead><tr>
+            <th style="padding:10px 14px; text-align:center; font-size:11px; color:#6d7277; background:#f6f9fb; width:44px;">#</th>
+            <th onClick="{{ onTrendSortName }}" style="padding:10px 14px; text-align:left; font-size:11px; color:#6d7277; background:#f6f9fb; cursor:pointer; user-select:none;">{{ trendColName }}</th>
+            <sc-for list="{{ trendMonthCols }}" as="m" hint-placeholder-count="6">
+              <th onClick="{{ m.onClick }}" style="{{ m.style }}">{{ m.label }}</th>
+            </sc-for>
+            <th onClick="{{ onTrendSortPct }}" style="padding:10px 14px; text-align:right; font-size:11px; color:#6d7277; background:#f6f9fb; cursor:pointer; user-select:none;">{{ trendColPct }}</th>
+          </tr></thead>
+          <tbody>
+            <sc-for list="{{ trendDcRows }}" as="r" hint-placeholder-count="6">
+              <tr>
+                <td style="padding:9px 14px; border-top:1px solid #ebeff2; text-align:center; color:#9aa0a5; font-family:'IBM Plex Mono',monospace;">{{ r.idx }}</td>
+                <td onClick="{{ r.onClick }}" style="padding:9px 14px; border-top:1px solid #ebeff2; font-weight:600; cursor:pointer;">{{ r.name }}</td>
+                <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="6">
+                  <td style="padding:9px 14px; border-top:1px solid #ebeff2; text-align:right; font-family:'IBM Plex Mono',monospace;">{{ c.label }}</td>
+                </sc-for>
+                <td style="padding:9px 14px; border-top:1px solid #ebeff2; text-align:right; font-family:'IBM Plex Mono',monospace; font-weight:600; color:{{ r.pctColor }};">{{ r.pctLabel }}</td>
+              </tr>
+            </sc-for>
+          </tbody>
+          <sc-if value="{{ trendDcAvgRow }}" hint-placeholder-val="{{ false }}">
+            <tfoot><tr>
+              <td style="padding:9px 14px; border-top:2px solid #e3e7ea;"></td>
+              <td style="padding:9px 14px; border-top:2px solid #e3e7ea; font-weight:700;">ค่าเฉลี่ย</td>
+              <sc-for list="{{ trendDcAvgRow.cells }}" as="c" hint-placeholder-count="6">
+                <td style="padding:9px 14px; border-top:2px solid #e3e7ea; text-align:right; font-family:'IBM Plex Mono',monospace; font-weight:700;">{{ c.label }}</td>
+              </sc-for>
+              <td style="padding:9px 14px; border-top:2px solid #e3e7ea;"></td>
+            </tr></tfoot>
+          </sc-if>
+        </table></div>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ isTrendShop }}" hint-placeholder-val="{{ false }}">
+        <div style="font-size:13px; font-weight:700; margin-bottom:12px;">Productivity Shop (บาท/คน/เดือน)</div>
+        <div style="background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 1px 2px rgba(20,30,50,0.04), 0 8px 24px rgba(20,30,50,0.03);">
+        <div style="{{ tableScrollStyle }}"><table style="{{ tableMinWidthStyle }}">
+          <thead><tr>
+            <th style="padding:10px 14px; text-align:center; font-size:11px; color:#6d7277; background:#f6f9fb; width:44px;">#</th>
+            <th onClick="{{ onTrendSortName }}" style="padding:10px 14px; text-align:left; font-size:11px; color:#6d7277; background:#f6f9fb; cursor:pointer; user-select:none;">{{ trendColName }}</th>
+            <sc-for list="{{ trendMonthCols }}" as="m" hint-placeholder-count="6">
+              <th onClick="{{ m.onClick }}" style="{{ m.style }}">{{ m.label }}</th>
+            </sc-for>
+            <th onClick="{{ onTrendSortPct }}" style="padding:10px 14px; text-align:right; font-size:11px; color:#6d7277; background:#f6f9fb; cursor:pointer; user-select:none;">{{ trendColPct }}</th>
+          </tr></thead>
+          <tbody>
+            <sc-for list="{{ trendShopRows }}" as="r" hint-placeholder-count="6">
+              <tr>
+                <td style="padding:9px 14px; border-top:1px solid #ebeff2; text-align:center; color:#9aa0a5; font-family:'IBM Plex Mono',monospace;">{{ r.idx }}</td>
+                <td onClick="{{ r.onClick }}" style="padding:9px 14px; border-top:1px solid #ebeff2; font-weight:600; cursor:pointer;">{{ r.name }}</td>
+                <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="6">
+                  <td style="padding:9px 14px; border-top:1px solid #ebeff2; text-align:right; font-family:'IBM Plex Mono',monospace;">{{ c.label }}</td>
+                </sc-for>
+                <td style="padding:9px 14px; border-top:1px solid #ebeff2; text-align:right; font-family:'IBM Plex Mono',monospace; font-weight:600; color:{{ r.pctColor }};">{{ r.pctLabel }}</td>
+              </tr>
+            </sc-for>
+          </tbody>
+          <sc-if value="{{ trendShopAvgRow }}" hint-placeholder-val="{{ false }}">
+            <tfoot><tr>
+              <td style="padding:9px 14px; border-top:2px solid #e3e7ea;"></td>
+              <td style="padding:9px 14px; border-top:2px solid #e3e7ea; font-weight:700;">ค่าเฉลี่ย</td>
+              <sc-for list="{{ trendShopAvgRow.cells }}" as="c" hint-placeholder-count="6">
+                <td style="padding:9px 14px; border-top:2px solid #e3e7ea; text-align:right; font-family:'IBM Plex Mono',monospace; font-weight:700;">{{ c.label }}</td>
+              </sc-for>
+              <td style="padding:9px 14px; border-top:2px solid #e3e7ea;"></td>
+            </tr></tfoot>
+          </sc-if>
+        </table></div>
+        </div>
+        </sc-if>
+      </sc-if>
+
+      <!-- ============ ROTATION ============ -->
+      <sc-if value="{{ isRotation }}" hint-placeholder-val="{{ false }}">
+        <div style="{{ rotKpiGridStyle }}">
+          <div style="background:#fff; border-radius:14px; padding:16px 18px; box-shadow:0 1px 2px rgba(20,30,50,0.04), 0 8px 24px rgba(20,30,50,0.03); position:relative; overflow:hidden;">
+            <i class="ti ti-arrow-down" style="position:absolute; right:8px; top:8px; font-size:36px; color:#fdece9;"></i>
+            <div style="font-size:11px; color:#972527; position:relative;">สาขาที่ขาด</div><div style="font-family:'IBM Plex Mono',monospace; font-size:30px; font-weight:800; margin-top:6px; color:#972527; position:relative;">{{ rotUnderCount }}</div>
+          </div>
+          <div style="background:#fff; border-radius:14px; padding:16px 18px; box-shadow:0 1px 2px rgba(20,30,50,0.04), 0 8px 24px rgba(20,30,50,0.03); position:relative; overflow:hidden;">
+            <i class="ti ti-arrow-up" style="position:absolute; right:8px; top:8px; font-size:36px; color:#fdf1de;"></i>
+            <div style="font-size:11px; color:#723f00; position:relative;">สาขาที่เกิน</div><div style="font-family:'IBM Plex Mono',monospace; font-size:30px; font-weight:800; margin-top:6px; color:#723f00; position:relative;">{{ rotOverCount }}</div>
+          </div>
+          <div style="background:#fff; border-radius:14px; padding:16px 18px; box-shadow:0 1px 2px rgba(20,30,50,0.04), 0 8px 24px rgba(20,30,50,0.03); position:relative; overflow:hidden;">
+            <i class="ti ti-arrows-exchange" style="position:absolute; right:8px; top:8px; font-size:36px; color:#e2f3e9;"></i>
+            <div style="font-size:11px; color:#005226; position:relative;">คู่หมุนเวียนที่แนะนำ</div><div style="font-family:'IBM Plex Mono',monospace; font-size:30px; font-weight:800; margin-top:6px; color:#005226; position:relative;">{{ rotationPairs.length }}</div>
+          </div>
+          <div style="background:#fff; border-radius:14px; padding:16px 18px; box-shadow:0 1px 2px rgba(20,30,50,0.04), 0 8px 24px rgba(20,30,50,0.03); position:relative; overflow:hidden;">
+            <i class="ti ti-users" style="position:absolute; right:8px; top:8px; font-size:36px; color:#d7ebfa;"></i>
+            <div style="font-size:11px; color:#1A6FA8; position:relative;">หมุนเวียนได้</div><div style="font-family:'IBM Plex Mono',monospace; font-size:30px; font-weight:800; margin-top:6px; color:#1A6FA8; position:relative;">{{ rotationTotalMove }}</div>
+          </div>
+        </div>
+
+        <div style="font-size:13px; font-weight:700; margin-bottom:12px;">คู่หมุนเวียนที่แนะนำ</div>
+        <div style="display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; justify-content:flex-end;">
+          <button onClick="{{ rotationExportCsv }}" style="height:36px; padding:0 16px; border-radius:9px; border:1px solid #d9dfe3; font-size:12.5px; background:#fff; font-family:inherit; font-weight:600; cursor:pointer;">Export CSV</button>
+        </div>
+        <sc-for list="{{ rotationGroups }}" as="g" hint-placeholder-count="2">
+          <div onClick="{{ g.onToggle }}" style="background:#fff; border:1px solid #e3e7ea; box-shadow:0 1px 2px rgba(20,30,50,0.04), 0 8px 24px rgba(20,30,50,0.03); border-radius:12px; padding:12px 16px; margin:14px 0 10px; display:flex; flex-direction:column; gap:8px; cursor:pointer;">
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <i class="{{ g.chevronIcon }}" style="font-size:14px; color:#565e64;"></i>
+              <div style="font-size:13px; font-weight:700;">{{ g.region }}</div>
+              <span style="font-size:10.5px; font-weight:600; color:#972527; background:#fbe4e4; padding:3px 10px; border-radius:99px;">ขาด {{ g.underCount }}</span>
+              <span style="font-size:10.5px; font-weight:600; color:#723f00; background:#fbe9d3; padding:3px 10px; border-radius:99px;">เกิน {{ g.overCount }}</span>
+            </div>
+          </div>
+          <sc-if value="{{ g.expanded }}" hint-placeholder-val="{{ true }}">
+            <sc-if value="{{ g.hasUnmatchedUnder }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin:0 0 10px;">
+                <span style="font-size:11px; color:#7b8186; white-space:nowrap;">จับคู่ไม่ได้ (ขาด):</span>
+                <sc-for list="{{ g.unmatchedUnderChips }}" as="chip" hint-placeholder-count="2">
+                  <span style="font-size:10.5px; color:#972527; background:#fff; border:1px solid #f0c9c9; padding:2px 9px; border-radius:99px; white-space:nowrap;">{{ chip }}</span>
+                </sc-for>
+              </div>
+            </sc-if>
+            <sc-if value="{{ g.hasUnmatchedOver }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin:0 0 10px;">
+                <span style="font-size:11px; color:#7b8186; white-space:nowrap;">จับคู่ไม่ได้ (เกิน):</span>
+                <sc-for list="{{ g.unmatchedOverChips }}" as="chip" hint-placeholder-count="2">
+                  <span style="font-size:10.5px; color:#723f00; background:#fff; border:1px solid #f0ddb8; padding:2px 9px; border-radius:99px; white-space:nowrap;">{{ chip }}</span>
+                </sc-for>
+              </div>
+            </sc-if>
+          <div style="{{ rotRegionColGridStyle }}">
+            <sc-if value="{{ g.hasOverList }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#fff; border-radius:12px; padding:10px 14px; box-shadow:0 1px 2px rgba(20,30,50,0.04);">
+              <div style="font-size:11px; font-weight:700; color:#723f00; margin-bottom:6px; display:flex; justify-content:space-between;">
+                <span>สาขาที่เกิน</span><span>รวม +{{ g.overTotal }}</span>
+              </div>
+              <sc-for list="{{ g.overList }}" as="o" hint-placeholder-count="2">
+                <div style="display:flex; justify-content:space-between; font-size:12px; padding:4px 0; border-top:1px solid #f2f2f2;">
+                  <span>{{ o.name }}</span>
+                  <span style="font-family:'IBM Plex Mono',monospace; color:#723f00;">+{{ o.amount }}</span>
+                </div>
+              </sc-for>
+            </div>
+            </sc-if>
+            <sc-if value="{{ g.hasUnderList }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#fff; border-radius:12px; padding:10px 14px; box-shadow:0 1px 2px rgba(20,30,50,0.04);">
+              <div style="font-size:11px; font-weight:700; color:#972527; margin-bottom:6px; display:flex; justify-content:space-between;">
+                <span>สาขาที่ขาด</span><span>รวม -{{ g.underTotal }}</span>
+              </div>
+              <sc-for list="{{ g.underList }}" as="u" hint-placeholder-count="2">
+                <div style="display:flex; justify-content:space-between; font-size:12px; padding:4px 0; border-top:1px solid #f2f2f2;">
+                  <span>{{ u.name }}</span>
+                  <span style="font-family:'IBM Plex Mono',monospace; color:#972527;">-{{ u.amount }}</span>
+                </div>
+              </sc-for>
+            </div>
+            </sc-if>
+          </div>
+          <sc-if value="{{ g.hasPairs }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:11px; color:#1A6FA8; font-weight:700; margin-bottom:6px;">คู่หมุนเวียนที่แนะนำ</div>
+            <div style="background:#fff; border-radius:12px; box-shadow:0 1px 2px rgba(20,30,50,0.04); overflow:hidden; margin-bottom:6px;">
+              <sc-for list="{{ g.pairs }}" as="p" hint-placeholder-count="2">
+                <div style="display:flex; align-items:center; gap:10px; padding:10px 16px; border-top:1px solid #f2f2f2;">
+                  <div style="flex:1; font-size:12.5px;"><b style="color:#723f00;">{{ p.overName }}</b> <span style="color:#9aa0a5; font-weight:400;">+{{ p.overDiff }}</span></div>
+                  <span style="font-size:10px; color:#1A6FA8; background:#eaf3fa; padding:2px 8px; border-radius:99px; white-space:nowrap;">{{ p.matchLabel }}</span>
+                  <i class="ti ti-arrow-right" style="color:#1A6FA8; font-size:14px;"></i>
+                  <div style="flex:1; font-size:12.5px;"><b style="color:#972527;">{{ p.underName }}</b> <span style="color:#9aa0a5; font-weight:400;">-{{ p.underDiff }}</span></div>
+                  <div style="font-size:11px; color:#1A6FA8; font-weight:700; white-space:nowrap;">ย้าย {{ p.move }} คน</div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+        </sc-for>
+      </sc-if>
+
+      <!-- ============ SETTINGS ============ -->
+      <sc-if value="{{ isSettingsLocked }}" hint-placeholder-val="{{ false }}">
+        <div style="max-width:360px; margin:60px auto 0; background:#fff; border-radius:16px; padding:28px 26px; box-shadow:0 1px 2px rgba(20,30,50,0.04), 0 8px 24px rgba(20,30,50,0.03); text-align:center;">
+          <i class="ti ti-lock" style="font-size:28px; color:#1A6FA8;"></i>
+          <div style="font-size:14px; font-weight:700; margin-top:10px;">กรอกรหัสเพื่อเข้าตั้งค่าระบบ</div>
+          <input type="password" placeholder="รหัสผ่าน" value="{{ settingsPwInput }}" onChange="{{ onSettingsPwChange }}" onKeyDown="{{ onSettingsPwKeyDown }}" style="width:100%; height:38px; margin-top:16px; padding:0 12px; border-radius:9px; border:1px solid #d9dfe3; font-size:13px; font-family:inherit; text-align:center;">
+          <sc-if value="{{ settingsPwError }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:11.5px; color:#972527; margin-top:8px;">รหัสผ่านไม่ถูกต้อง</div>
+          </sc-if>
+          <button onClick="{{ onSettingsPwSubmit }}" style="width:100%; height:38px; margin-top:12px; border-radius:9px; border:none; background:#1A6FA8; color:#fff; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit;">เข้าสู่ระบบ</button>
+        </div>
+      </sc-if>
+      <sc-if value="{{ isSettingsUnlocked }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex; gap:0; background:#eef2f5; border-radius:10px; padding:4px; width:fit-content; margin-bottom:18px;">
+          <button onClick="{{ setSettingsTabCriteria }}" style="{{ settingsTabCriteriaStyle }}">เกณฑ์คำนวณ</button>
+          <button onClick="{{ setSettingsTabBranches }}" style="{{ settingsTabBranchesStyle }}">จัดการสาขา</button>
+        </div>
+
+        <sc-if value="{{ isSettingsCriteria }}" hint-placeholder-val="{{ true }}">
+          <div style="max-width:720px; display:flex; flex-direction:column; gap:16px;">
+            <sc-if value="{{ settingsSaveStatus }}" hint-placeholder-val="{{ false }}">
+              <div style="{{ settingsSaveBannerStyle }}">{{ settingsSaveBannerText }}</div>
+            </sc-if>
+            <div style="background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 1px 2px rgba(20,30,50,0.04), 0 8px 24px rgba(20,30,50,0.03);">
+              <div style="padding:12px 20px; font-size:13.5px; font-weight:700; background:#f6f9fb;">เกณฑ์ตามกลุ่มสาขา (DC)</div>
+              <div style="{{ tableScrollStyle }}"><table style="width:100%;">
+                <thead><tr>
+                  <th style="padding:9px 20px; text-align:left; font-size:11px; color:#6d7277;">กลุ่มสาขา</th>
+                  <th style="padding:9px 20px; text-align:right; font-size:11px; color:#6d7277;">กำลังพลขั้นต่ำ</th>
+                  <th style="padding:9px 20px; text-align:right; font-size:11px; color:#6d7277;">เกณฑ์ (case/คน/วัน)</th>
+                </tr></thead>
+                <tbody>
+                  <sc-for list="{{ groupSettingsRows }}" as="g" hint-placeholder-count="6">
+                    <tr>
+                      <td style="padding:9px 20px; border-top:1px solid #ebeff2; font-weight:500;">{{ g.label }}</td>
+                      <td style="padding:9px 20px; border-top:1px solid #ebeff2; text-align:right;"><input type="number" value="{{ g.minStaff }}" onChange="{{ g.onMinChange }}" style="width:70px; text-align:right; height:30px; border-radius:7px; border:1px solid #d9dfe3; font-family:'IBM Plex Mono',monospace; font-size:12.5px;"></td>
+                      <td style="padding:9px 20px; border-top:1px solid #ebeff2; text-align:right;"><input type="number" value="{{ g.target }}" onChange="{{ g.onTargetChange }}" style="width:80px; text-align:right; height:30px; border-radius:7px; border:1px solid #d9dfe3; font-family:'IBM Plex Mono',monospace; font-size:12.5px;"></td>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table></div>
+            </div>
+
+            <div style="background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 1px 2px rgba(20,30,50,0.04), 0 8px 24px rgba(20,30,50,0.03);">
+              <div style="padding:12px 20px; font-size:13.5px; font-weight:700; background:#f6f9fb;">เกณฑ์ Shop</div>
+              <div style="padding:18px 20px; display:flex; align-items:center; gap:14px;">
+                <label style="font-size:12.5px; color:#595e63;">เกณฑ์ยอดขาย (บาท/คน/เดือน)</label>
+                <input type="number" value="{{ settings.shopTarget }}" onChange="{{ onShopTargetChange }}" style="width:130px; height:34px; border-radius:8px; border:1px solid #d9dfe3; font-family:'IBM Plex Mono',monospace; font-size:13px; padding:0 10px;">
+              </div>
+            </div>
+
+            <div style="background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 1px 2px rgba(20,30,50,0.04), 0 8px 24px rgba(20,30,50,0.03);">
+              <div style="padding:12px 20px; font-size:13.5px; font-weight:700; background:#f6f9fb;">เกณฑ์ขาด/เกินกำลังพล (ใช้ร่วมกับ DC และ Shop)</div>
+              <div style="padding:18px 20px; display:flex; align-items:center; gap:14px;">
+                <label style="font-size:12.5px; color:#595e63;">วิธีปัดเศษจำนวนคนที่เหมาะสม</label>
+                <select value="{{ settings.roundMode }}" onChange="{{ onRoundModeChange }}" style="height:34px; border-radius:8px; border:1px solid #d9dfe3; font-size:12.5px; padding:0 10px; font-family:inherit;">
+                  <option value="ceil">ปัดขึ้นเสมอ</option>
+                  <option value="round">ปัดเศษปกติ (≥0.5 ปัดขึ้น)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isSettingsBranches }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; gap:0; background:#eef2f5; border-radius:10px; padding:4px; width:fit-content; margin-bottom:18px;">
+            <button onClick="{{ setLocTabDc }}" style="{{ locTabDcStyle }}">DC / สาขา</button>
+            <button onClick="{{ setLocTabShop }}" style="{{ locTabShopStyle }}">Shop</button>
+          </div>
+
+          <sc-if value="{{ isLocDc }}" hint-placeholder-val="{{ true }}">
+            <div style="background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 1px 2px rgba(20,30,50,0.04), 0 8px 24px rgba(20,30,50,0.03);">
+              <div style="{{ tableScrollStyle }}"><table style="{{ tableMinWidthStyle }}">
+                <thead><tr>
+                  <th style="padding:10px 18px; text-align:left; font-size:11px; color:#6d7277; background:#f6f9fb;">DC / สาขา</th>
+                  <th style="padding:10px 18px; text-align:left; font-size:11px; color:#6d7277; background:#f6f9fb;">กลุ่ม</th>
+                  <th style="padding:10px 18px; text-align:left; font-size:11px; color:#6d7277; background:#f6f9fb;">ภาค</th>
+                </tr></thead>
+                <tbody>
+                  <sc-for list="{{ dcList }}" as="d" hint-placeholder-count="10">
+                    <tr>
+                      <td style="padding:9px 18px; border-top:1px solid #ebeff2; font-weight:600;">{{ d.name }}</td>
+                      <td style="padding:9px 18px; border-top:1px solid #ebeff2;">
+                        <select value="{{ d.group }}" onChange="{{ d.onGroupChange }}" style="height:30px; border-radius:7px; border:1px solid #d9dfe3; font-size:12px; padding:0 8px; background:#fff; font-family:inherit;">
+                          <sc-for list="{{ groupOptions }}" as="go" hint-placeholder-count="6"><option value="{{ go }}">{{ go }}</option></sc-for>
+                        </select>
+                      </td>
+                      <td style="padding:9px 18px; border-top:1px solid #ebeff2;">
+                        <select value="{{ d.region }}" onChange="{{ d.onRegionChange }}" style="height:30px; border-radius:7px; border:1px solid #d9dfe3; font-size:12px; padding:0 8px; background:#fff; font-family:inherit;">
+                          <sc-for list="{{ regionOptions }}" as="ro" hint-placeholder-count="6"><option value="{{ ro }}">{{ ro }}</option></sc-for>
+                        </select>
+                      </td>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table></div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isLocShop }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex; justify-content:flex-end; margin-bottom:12px;">
+              <button onClick="{{ openShopModal }}" style="padding:9px 18px; border:none; border-radius:9px; background:#1A6FA8; color:#fff; font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit;">+ เพิ่ม Shop</button>
+            </div>
+            <div style="background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 1px 2px rgba(20,30,50,0.04), 0 8px 24px rgba(20,30,50,0.03);">
+              <div style="{{ tableScrollStyle }}"><table style="{{ tableMinWidthStyle }}">
+                <thead><tr>
+                  <th style="padding:10px 18px; text-align:left; font-size:11px; color:#6d7277; background:#f6f9fb;">Shop</th>
+                  <th style="padding:10px 18px; text-align:left; font-size:11px; color:#6d7277; background:#f6f9fb;">ภาค</th>
+                  <th style="padding:10px 18px; text-align:left; font-size:11px; color:#6d7277; background:#f6f9fb;">DC ต้นสังกัด</th>
+                </tr></thead>
+                <tbody>
+                  <sc-for list="{{ shopList }}" as="s" hint-placeholder-count="8">
+                    <tr>
+                      <td style="padding:9px 18px; border-top:1px solid #ebeff2; font-weight:600;">{{ s.name }}</td>
+                      <td style="padding:9px 18px; border-top:1px solid #ebeff2;">
+                        <select value="{{ s.region }}" onChange="{{ s.onRegionChange }}" style="height:30px; border-radius:7px; border:1px solid #d9dfe3; font-size:12px; padding:0 8px; background:#fff; font-family:inherit;">
+                          <sc-for list="{{ regionOptions }}" as="ro" hint-placeholder-count="6"><option value="{{ ro }}">{{ ro }}</option></sc-for>
+                        </select>
+                      </td>
+                      <td style="padding:9px 18px; border-top:1px solid #ebeff2;">
+                        <select value="{{ s.dcParent }}" onChange="{{ s.onDcParentChange }}" style="height:30px; border-radius:7px; border:1px solid #d9dfe3; font-size:12px; padding:0 8px; background:#fff; font-family:inherit;">
+                          <sc-for list="{{ dcNameOptions }}" as="dn" hint-placeholder-count="6"><option value="{{ dn }}">{{ dn }}</option></sc-for>
+                        </select>
+                      </td>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table></div>
+            </div>
+          </sc-if>
+        </sc-if>
+
+        <sc-if value="{{ shopModalOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="position:fixed; inset:0; background:rgba(20,30,50,0.35); display:flex; align-items:center; justify-content:center; z-index:999;">
+            <div style="background:#fff; border-radius:16px; padding:26px; width:400px; box-shadow:0 8px 32px rgba(0,0,0,0.18);">
+              <div style="font-size:14.5px; font-weight:700; margin-bottom:16px;">เพิ่ม Shop</div>
+              <div style="display:flex; flex-direction:column; gap:12px;">
+                <div><label style="font-size:12px; color:#646a6e; margin-bottom:4px; display:block;">ชื่อ Shop</label><input type="text" value="{{ shopModalName }}" onChange="{{ onShopModalNameChange }}" style="width:100%; height:34px; border-radius:8px; border:1px solid #d9dfe3; padding:0 10px; font-size:12.5px; box-sizing:border-box; font-family:inherit;"></div>
+                <div><label style="font-size:12px; color:#646a6e; margin-bottom:4px; display:block;">DC ต้นสังกัด</label><input type="text" value="{{ shopModalDc }}" onChange="{{ onShopModalDcChange }}" style="width:100%; height:34px; border-radius:8px; border:1px solid #d9dfe3; padding:0 10px; font-size:12.5px; box-sizing:border-box; font-family:inherit;"></div>
+              </div>
+              <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:20px;">
+                <button onClick="{{ closeShopModal }}" style="padding:9px 16px; border-radius:8px; border:1px solid #d2d8dd; background:#fff; font-size:12.5px; cursor:pointer; font-family:inherit;">ยกเลิก</button>
+                <button onClick="{{ saveShopModal }}" style="padding:9px 16px; border-radius:8px; border:none; background:#1A6FA8; color:#fff; font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit;">บันทึก</button>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+      </sc-if>
+
+      <sc-if value="{{ empModalOpen }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ closeEmpModal }}" style="position:fixed; inset:0; background:rgba(20,30,50,0.35); display:flex; align-items:center; justify-content:center; z-index:999;">
+          <div onClick="{{ stopProp }}" style="background:#fff; border-radius:16px; padding:22px 0 10px; width:320px; max-height:70vh; display:flex; flex-direction:column; box-shadow:0 8px 32px rgba(0,0,0,0.18);">
+            <div style="font-size:14.5px; font-weight:700; padding:0 22px 14px; border-bottom:1px solid #ebeff2;">{{ empModalName }} — จำนวนพนักงาน</div>
+            <div style="overflow-y:auto; padding:6px 22px;">
+              <sc-for list="{{ empModalRows }}" as="m" hint-placeholder-count="6">
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:9px 0; border-bottom:1px solid #f4f6f7; font-size:12.5px;">
+                  <span style="color:#6d7277;">{{ m.month }}</span>
+                  <b style="font-family:'IBM Plex Mono',monospace;">{{ m.emp }}</b>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex; justify-content:flex-end; padding:14px 22px 0;">
+              <button onClick="{{ closeEmpModal }}" style="padding:9px 16px; border-radius:8px; border:1px solid #d2d8dd; background:#fff; font-size:12.5px; cursor:pointer; font-family:inherit;">ปิด</button>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ summaryModalOpen }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ closeSummaryModal }}" style="position:fixed; inset:0; background:rgba(20,30,50,0.35); display:flex; align-items:center; justify-content:center; z-index:999;">
+          <div onClick="{{ stopProp }}" style="background:#fff; border-radius:16px; padding:26px; width:420px; max-height:76vh; overflow-y:auto; box-shadow:0 8px 32px rgba(0,0,0,0.18);">
+            <div style="font-size:14.5px; font-weight:700; margin-bottom:14px; display:flex; align-items:center; gap:8px;"><i class="ti ti-sparkles" style="color:#1A6FA8;"></i> สรุปผลการวิเคราะห์</div>
+            <div style="display:flex; flex-direction:column; gap:10px;">
+              <sc-for list="{{ summaryBullets }}" as="b" hint-placeholder-count="4">
+                <div style="display:flex; gap:10px; font-size:12.5px; line-height:1.5; align-items:flex-start;">
+                  <i class="{{ b.icon }}" style="color:{{ b.color }}; font-size:15px; margin-top:1px; flex:none;"></i>
+                  <span>{{ b.text }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex; justify-content:flex-end; margin-top:20px;">
+              <button onClick="{{ closeSummaryModal }}" style="padding:9px 16px; border-radius:8px; border:1px solid #d2d8dd; background:#fff; font-size:12.5px; cursor:pointer; font-family:inherit;">ปิด</button>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ listModalOpen }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ closeListModal }}" style="position:fixed; inset:0; background:rgba(20,30,50,0.35); display:flex; align-items:center; justify-content:center; z-index:999;">
+          <div onClick="{{ stopProp }}" style="background:#fff; border-radius:16px; padding:22px 0 10px; width:380px; max-height:70vh; display:flex; flex-direction:column; box-shadow:0 8px 32px rgba(0,0,0,0.18);">
+            <div style="font-size:14.5px; font-weight:700; padding:0 22px 14px; border-bottom:1px solid #ebeff2;">{{ listModalTitle }}</div>
+            <div style="overflow-y:auto; padding:6px 22px;">
+              <sc-for list="{{ listModalItems }}" as="it" hint-placeholder-count="5">
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:9px 0; border-bottom:1px solid #f4f6f7; font-size:12.5px;">
+                  <b>{{ it.name }}</b>
+                  <span style="font-family:'IBM Plex Mono',monospace; font-weight:700; color:{{ listModalColor }};">{{ it.diffLabel }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex; justify-content:flex-end; padding:14px 22px 0;">
+              <button onClick="{{ closeListModal }}" style="padding:9px 16px; border-radius:8px; border:1px solid #d2d8dd; background:#fff; font-size:12.5px; cursor:pointer; font-family:inherit;">ปิด</button>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ dashModalOpen }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ closeDashModal }}" style="position:fixed; inset:0; background:rgba(20,30,50,0.35); display:flex; align-items:center; justify-content:center; z-index:999;">
+          <div onClick="{{ stopProp }}" style="background:#fff; border-radius:16px; padding:26px; width:380px; box-shadow:0 8px 32px rgba(0,0,0,0.18);">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+              <div style="font-size:14.5px; font-weight:700;">{{ dashModalName }}</div>
+              <span style="font-size:10.5px; font-weight:600; padding:3px 9px; border-radius:20px; background:{{ dashModalStatusBg }}; color:{{ dashModalStatusColor }};">{{ dashModalStatusLabel }}</span>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:10px; font-size:12.5px;">
+              <div style="display:flex; justify-content:space-between;"><span style="color:#6d7277;">ภาค</span><b>{{ dashModalRegion }}</b></div>
+              <sc-if value="{{ dashModalIsShop }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex; justify-content:space-between;"><span style="color:#6d7277;">ยอดขายรวมเดือนนี้</span><b style="font-family:'IBM Plex Mono',monospace;">{{ dashModalRevenue }}</b></div>
+              </sc-if>
+              <div style="display:flex; justify-content:space-between;"><span style="color:#6d7277;">พนักงาน</span><b style="font-family:'IBM Plex Mono',monospace;">{{ dashModalEmp }}</b></div>
+              <div style="display:flex; justify-content:space-between;"><span style="color:#6d7277;">{{ dashModalMetricLabel }}</span><b style="font-family:'IBM Plex Mono',monospace;">{{ dashModalMetricValue }}</b></div>
+              <div style="display:flex; justify-content:space-between;"><span style="color:#6d7277;">เหมาะสม</span><b style="font-family:'IBM Plex Mono',monospace; color:#1A6FA8;">{{ dashModalReq }}</b></div>
+              <div style="display:flex; justify-content:space-between;"><span style="color:#6d7277;">ผลต่าง</span><b style="font-family:'IBM Plex Mono',monospace; color:{{ dashModalDiffColor }};">{{ dashModalDiffLabel }}</b></div>
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:20px;">
+              <button onClick="{{ closeDashModal }}" style="padding:9px 16px; border-radius:8px; border:1px solid #d2d8dd; background:#fff; font-size:12.5px; cursor:pointer; font-family:inherit;">ปิด</button>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;autoSyncEnabled&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Google Sheets Sync&quot;}, &quot;autoSyncMinutes&quot;: {&quot;editor&quot;: &quot;range&quot;, &quot;default&quot;: 5, &quot;min&quot;: 1, &quot;max&quot;: 60, &quot;step&quot;: 1, &quot;tsType&quot;: &quot;number&quot;, &quot;section&quot;: &quot;Google Sheets Sync&quot;}}">
+const STATUS_COLORS = {
+  meet: { bg: '#c9f4d7', text: '#005226' },
+  over: { bg: '#ffe6bf', text: '#723f00' },
+  under: { bg: '#ffd7d0', text: '#972527' },
+};
+STATUS_COLORS.na = { bg: '#f3f4f6', text: '#6b7280' };
+const STATUS_LABEL = { meet: 'เหมาะสม', over: 'กำลังพลเกิน', under: 'กำลังพลขาด', na: 'ไม่มีข้อมูล' };
+const GROUP_LABELS = { 'DC': 'DC', 'night': 'DC กลางคืน', 'day': 'DC กลางวัน', 'HUB': 'HUB', 'CDC': 'CDC บางนา', 'mini': 'mini DC' };
+const GROUP_DOT = { 'DC': '#378ADD', 'night': '#378ADD', 'day': '#378ADD', 'HUB': '#7F77DD', 'CDC': '#7F77DD', 'mini': '#888780' };
+
+function fmt(n) { return Math.round(n).toLocaleString('th-TH'); }
+
+// Smooth SVG path through points using Catmull-Rom -> cubic Bezier conversion.
+function buildSmoothPath(points) {
+  if (!points.length) return '';
+  if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
+  let d = `M ${points[0].x} ${points[0].y} `;
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[i === 0 ? 0 : i - 1];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const p3 = points[i + 2 < points.length ? i + 2 : i + 1];
+    const cp1x = p1.x + (p2.x - p0.x) / 6;
+    const cp1y = p1.y + (p2.y - p0.y) / 6;
+    const cp2x = p2.x - (p3.x - p1.x) / 6;
+    const cp2y = p2.y - (p3.y - p1.y) / 6;
+    d += `C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y} `;
+  }
+  return d.trim();
+}
+
+// ---- Google Sheets link import helpers ----
+function toCsvExportUrl(url) {
+  try {
+    const pubMatch = url.match(/\/d\/e\/([a-zA-Z0-9-_]+)/);
+    if (pubMatch) {
+      const id = pubMatch[1];
+      const gidMatch = url.match(/[#&?]gid=([0-9]+)/);
+      const gid = gidMatch ? gidMatch[1] : '0';
+      return `https://docs.google.com/spreadsheets/d/e/${id}/pub?gid=${gid}&single=true&output=csv`;
+    }
+    const m = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+    if (!m) return url;
+    const id = m[1];
+    const gidMatch = url.match(/[#&?]gid=([0-9]+)/);
+    const gid = gidMatch ? gidMatch[1] : '0';
+    return `https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=${gid}`;
+  } catch (e) { return url; }
+}
+const MONTH_NAME_TO_NUM = { Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06', Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12' };
+// Accepts header like "Jan", "Jan-69", "Jan-2569", "Jan 69", "Jan/2569" -> returns "mm/yyyy" (Buddhist year) or null
+function parseMonthHeader(col) {
+  const m = String(col || '').trim().match(/^([A-Za-z]{3})[a-z]*[\s\-\/]?(\d{2,4})?$/);
+  if (!m) return null;
+  const mm = MONTH_NAME_TO_NUM[m[1].slice(0,1).toUpperCase() + m[1].slice(1,3).toLowerCase()];
+  if (!mm) return null;
+  let yy = m[2];
+  if (!yy) yy = '2569';
+  else if (yy.length === 2) yy = '25' + yy; // 69 -> 2569 (Buddhist era, 2-digit)
+  return mm + '/' + yy;
+}
+function parseCsv(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim().length);
+  return lines.map(line => {
+    const cells = []; let cur = '', inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') { inQuotes = !inQuotes; continue; }
+      if (ch === ',' && !inQuotes) { cells.push(cur); cur = ''; continue; }
+      cur += ch;
+    }
+    cells.push(cur);
+    return cells.map(c => c.trim());
+  });
+}
+
+class Component extends DCLogic {
+  state = {
+    screen: 'dashboard',
+    viewportWidth: typeof window !== 'undefined' ? window.innerWidth : 1280,
+    drawerOpen: false,
+    dataLoaded: true,
+    settings: {
+      DC: { target: 120, minStaff: 3 }, night: { target: 100, minStaff: 4 }, day: { target: 120, minStaff: 3 },
+      HUB: { target: 140, minStaff: 0 }, CDC: { target: 120, minStaff: 0 }, mini: { target: 120, minStaff: 1 },
+      shopTarget: 100000, tolerancePct: 10, roundMode: 'ceil',
+    },
+    dcList: [
+      { name: 'DC เชียงใหม่', group: 'DC', region: 'ภาคเหนือ', emp: 45 },
+      { name: 'DC ขอนแก่น', group: 'DC', region: 'ภาคอีสาน', emp: 50 },
+      { name: 'DC ราชบุรี', group: 'day', region: 'ภาคตะวันตก', emp: 30 },
+      { name: 'DC ร้อยเอ็ด', group: 'night', region: 'ภาคอีสาน', emp: 20 },
+      { name: 'DC พุทธมณฑลสาย 3', group: 'HUB', region: 'BKK / กทม.', emp: 60 },
+      { name: 'CDC บางนา', group: 'CDC', region: 'BKK / กทม.', emp: 80 },
+      { name: 'DC แม่ฮ่องสอน', group: 'mini', region: 'ภาคเหนือ', emp: 5 },
+      { name: 'DC นครสวรรค์', group: 'HUB', region: 'ภาคเหนือ', emp: 55 },
+      { name: 'DC สุพรรณบุรี', group: 'DC', region: 'ภาคกลาง', emp: 25 },
+      { name: 'DC อุบลราชธานี', group: 'day', region: 'ภาคอีสาน', emp: 28 },
+      { name: 'DC ภูเก็ต', group: 'DC', region: 'ภาคใต้', emp: 38 },
+      { name: 'DC หาดใหญ่', group: 'DC', region: 'ภาคใต้', emp: 42 },
+    ],
+    dcInboundByMonth: {
+      'DC เชียงใหม่': { '07/2569': { total: 27000, days: 5 } },
+      'DC ขอนแก่น': { '07/2569': { total: 35000, days: 5 } },
+      'DC ราชบุรี': { '07/2569': { total: 15000, days: 5 } },
+      'DC ร้อยเอ็ด': { '07/2569': { total: 9500, days: 5 } },
+      'DC พุทธมณฑลสาย 3': { '07/2569': { total: 44000, days: 5 } },
+      'CDC บางนา': { '07/2569': { total: 48000, days: 5 } },
+      'DC แม่ฮ่องสอน': { '07/2569': { total: 2400, days: 5 } },
+      'DC นครสวรรค์': { '07/2569': { total: 42000, days: 5 } },
+      'DC สุพรรณบุรี': { '07/2569': { total: 13500, days: 5 } },
+      'DC อุบลราชธานี': { '07/2569': { total: 19000, days: 5 } },
+      'DC ภูเก็ต': { '07/2569': { total: 22800, days: 5 } },
+      'DC หาดใหญ่': { '07/2569': { total: 23000, days: 5 } },
+    },
+    selectedMonth: '07/2569',
+    shopList: [
+      { name: 'Shop สยามพารากอน', region: 'BKK / กทม.', dcParent: 'DC พุทธมณฑลสาย 3', emp: 10, revenue: 1050000 },
+      { name: 'Shop เซ็นทรัลเวิลด์', region: 'BKK / กทม.', dcParent: 'CDC บางนา', emp: 12, revenue: 1300000 },
+      { name: 'Shop เมกาบางนา', region: 'BKK / กทม.', dcParent: 'CDC บางนา', emp: 9, revenue: 850000 },
+      { name: 'Shop เชียงใหม่', region: 'ภาคเหนือ', dcParent: 'DC เชียงใหม่', emp: 6, revenue: 480000 },
+      { name: 'Shop ขอนแก่น', region: 'ภาคอีสาน', dcParent: 'DC ขอนแก่น', emp: 5, revenue: 560000 },
+      { name: 'Shop ภูเก็ต', region: 'ภาคใต้', dcParent: 'DC ภูเก็ต', emp: 7, revenue: 700000 },
+      { name: 'Shop หาดใหญ่', region: 'ภาคใต้', dcParent: 'DC หาดใหญ่', emp: 6, revenue: 450000 },
+      { name: 'Shop พัทยา', region: 'ภาคตะวันออก', dcParent: 'DC พุทธมณฑลสาย 3', emp: 8, revenue: 880000 },
+    ],
+    dcQuery: '', dcStatusFilter: '', dcSortKey: 'prod', dcSortDir: 'desc',
+    shopQuery: '', shopRegionFilter: '', shopStatusFilter: '', shopSortKey: 'bpp', shopSortDir: 'desc',
+    staffTypeFilter: '', staffStatusFilter: '', staffQuery: '', staffSortKey: 'diff', staffSortDir: 'asc',
+    rotRegionFilter: '', trendTab: 'dc', trendSortKey: 'name', trendSortDir: 'asc',
+    locTab: 'dc', settingsTab: 'criteria', settingsUnlocked: false, settingsPwInput: '', settingsPwError: false,
+    shopModalOpen: false, shopModalName: '', shopModalDc: '',
+    dashModalOpen: false, dashModalItem: null, dashModalType: '',
+    listModalOpen: false, listModalKind: '',
+    dcSheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRP-oKYnyZglMgovET_Jk6Wt1mkxK-DBI3ktJdrHFoGVOcUul1WX7ffoDLD1QgFPuWMQ5t-Yx1rFXEN/pubhtml?gid=0&single=true', dcSheetStatus: 'idle', dcSheetMessage: '',
+    shopSheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRP-oKYnyZglMgovET_Jk6Wt1mkxK-DBI3ktJdrHFoGVOcUul1WX7ffoDLD1QgFPuWMQ5t-Yx1rFXEN/pubhtml?gid=1981617570&single=true', shopSheetStatus: 'idle', shopSheetMessage: '',
+    dcInboundSheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRP-oKYnyZglMgovET_Jk6Wt1mkxK-DBI3ktJdrHFoGVOcUul1WX7ffoDLD1QgFPuWMQ5t-Yx1rFXEN/pubhtml?gid=637592867&single=true', dcInboundSheetStatus: 'idle', dcInboundSheetMessage: '',
+    shopRevenueSheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRP-oKYnyZglMgovET_Jk6Wt1mkxK-DBI3ktJdrHFoGVOcUul1WX7ffoDLD1QgFPuWMQ5t-Yx1rFXEN/pubhtml?gid=1809586186&single=true', shopRevenueSheetStatus: 'idle', shopRevenueSheetMessage: '',
+    shopEmpSheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRP-oKYnyZglMgovET_Jk6Wt1mkxK-DBI3ktJdrHFoGVOcUul1WX7ffoDLD1QgFPuWMQ5t-Yx1rFXEN/pubhtml?gid=1901172253&single=true', shopEmpSheetStatus: 'idle', shopEmpSheetMessage: '',
+    dcEmpSheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRP-oKYnyZglMgovET_Jk6Wt1mkxK-DBI3ktJdrHFoGVOcUul1WX7ffoDLD1QgFPuWMQ5t-Yx1rFXEN/pubhtml?gid=889009066&single=true', dcEmpSheetStatus: 'idle', dcEmpSheetMessage: '',
+    dcEmpByMonth: {
+      'DC เชียงใหม่': { '07/2569': 45 },
+      'DC ขอนแก่น': { '07/2569': 50 },
+      'DC ราชบุรี': { '07/2569': 30 },
+      'DC ร้อยเอ็ด': { '07/2569': 20 },
+      'DC พุทธมณฑลสาย 3': { '07/2569': 60 },
+      'CDC บางนา': { '07/2569': 80 },
+      'DC แม่ฮ่องสอน': { '07/2569': 5 },
+      'DC นครสวรรค์': { '07/2569': 55 },
+      'DC สุพรรณบุรี': { '07/2569': 25 },
+      'DC อุบลราชธานี': { '07/2569': 28 },
+      'DC ภูเก็ต': { '07/2569': 38 },
+      'DC หาดใหญ่': { '07/2569': 42 },
+    },
+    shopRevenueByMonth: {
+      'Shop สยามพารากอน': { '07/2569': 1050000 },
+      'Shop เซ็นทรัลเวิลด์': { '07/2569': 1300000 },
+      'Shop เมกาบางนา': { '07/2569': 850000 },
+      'Shop เชียงใหม่': { '07/2569': 480000 },
+      'Shop ขอนแก่น': { '07/2569': 560000 },
+      'Shop ภูเก็ต': { '07/2569': 700000 },
+      'Shop หาดใหญ่': { '07/2569': 450000 },
+      'Shop พัทยา': { '07/2569': 880000 },
+    },
+    shopEmpByMonth: {
+      'Shop สยามพารากอน': { '07/2569': 10 },
+      'Shop เซ็นทรัลเวิลด์': { '07/2569': 12 },
+      'Shop เมกาบางนา': { '07/2569': 9 },
+      'Shop เชียงใหม่': { '07/2569': 6 },
+      'Shop ขอนแก่น': { '07/2569': 5 },
+      'Shop ภูเก็ต': { '07/2569': 7 },
+      'Shop หาดใหญ่': { '07/2569': 6 },
+      'Shop พัทยา': { '07/2569': 8 },
+    },
+  };
+
+  setScreen(s) { return () => this.setState({ screen: s, drawerOpen: false }); }
+
+  SETTINGS_SHEET_URL = 'https://script.google.com/macros/s/AKfycbwzrkexgYoU7yVOzHsQ7GQ0tGzHVliWZFA-zVZXvSZsIG4VGOa74sNUlURby0atA9aLjA/exec';
+
+  loadSettingsFromSheet = async () => {
+    try {
+      const res = await fetch(this.SETTINGS_SHEET_URL);
+      const obj = await res.json();
+      if (obj && Object.keys(obj).length) {
+        const parsed = {};
+        Object.keys(obj).forEach(k => {
+          try { parsed[k] = JSON.parse(obj[k]); } catch (e) { parsed[k] = obj[k]; }
+        });
+        this.setState(s => ({ settings: { ...s.settings, ...parsed } }));
+      }
+    } catch (e) {}
+  };
+
+  persistSettingsToSheet = (settings) => {
+    clearTimeout(this._settingsSaveTimer);
+    this.setState({ settingsSaveStatus: 'saving' });
+    this._settingsSaveTimer = setTimeout(async () => {
+      try {
+        const body = {};
+        Object.keys(settings).forEach(k => { body[k] = JSON.stringify(settings[k]); });
+        await fetch(this.SETTINGS_SHEET_URL, { method: 'POST', body: JSON.stringify(body) });
+        this.setState({ settingsSaveStatus: 'saved' });
+      } catch (e) {
+        this.setState({ settingsSaveStatus: 'error' });
+      }
+      clearTimeout(this._settingsSaveStatusTimer);
+      this._settingsSaveStatusTimer = setTimeout(() => this.setState({ settingsSaveStatus: null }), 2500);
+    }, 600);
+  };
+
+  persistState = () => {
+    try {
+      const slice = {
+        dcList: this.state.dcList, shopList: this.state.shopList,
+        dcInboundByMonth: this.state.dcInboundByMonth, dcEmpByMonth: this.state.dcEmpByMonth,
+        shopRevenueByMonth: this.state.shopRevenueByMonth, shopEmpByMonth: this.state.shopEmpByMonth,
+        selectedMonth: this.state.selectedMonth, dataLoaded: this.state.dataLoaded,
+        dcSheetUrl: this.state.dcSheetUrl, dcInboundSheetUrl: this.state.dcInboundSheetUrl,
+        dcEmpSheetUrl: this.state.dcEmpSheetUrl, shopRevenueSheetUrl: this.state.shopRevenueSheetUrl,
+        shopEmpSheetUrl: this.state.shopEmpSheetUrl,
+      };
+      localStorage.setItem('productivityCalc_v1', JSON.stringify(slice));
+    } catch (e) {}
+  };
+
+  // Wraps setState in a promise that resolves only after the state is committed,
+  // so `await` in syncAllSheets truly waits for this.state to reflect the update
+  // before the next loader reads it (fixes races that could drop branches).
+  setStateAsync = (obj) => new Promise(resolve => this.setState(obj, resolve));
+
+  updateBestMonth = () => {
+    const sets = [this.state.dcInboundByMonth, this.state.dcEmpByMonth, this.state.shopEmpByMonth, this.state.shopRevenueByMonth]
+      .map(obj => new Set(Object.values(obj || {}).flatMap(m => Object.keys(m))))
+      .filter(s => s.size > 0);
+    if (!sets.length) return;
+    let inter = sets[0];
+    for (let i = 1; i < sets.length; i++) inter = new Set([...inter].filter(x => sets[i].has(x)));
+    const pool = inter.size ? inter : sets.reduce((a, b) => new Set([...a, ...b]), new Set());
+    const sorted = [...pool].sort((a, b) => {
+      const [am, ay] = a.split('/'); const [bm, by] = b.split('/');
+      return (Number(ay) * 12 + Number(am)) - (Number(by) * 12 + Number(bm));
+    });
+    const best = sorted[sorted.length - 1];
+    if (best && best !== this.state.selectedMonth) this.setState({ selectedMonth: best }, () => this.persistState());
+  };
+
+  // Run sequentially (not parallel) so each loader's "keep existing branches" merge
+  // sees the fully up-to-date roster from prior loaders instead of a stale snapshot.
+  syncAllSheets = async () => {
+    if (this.state.dcSheetUrl) await this.loadDcRosterFromSheet();
+    if (this.state.shopSheetUrl) await this.loadShopFromSheet();
+    if (this.state.dcInboundSheetUrl) await this.loadDcInboundFromSheet();
+    if (this.state.dcEmpSheetUrl) await this.loadDcEmpFromSheet();
+    if (this.state.shopRevenueSheetUrl) await this.loadShopRevenueFromSheet();
+    if (this.state.shopEmpSheetUrl) await this.loadShopEmpFromSheet();
+  };
+
+  componentDidMount() {
+    this.onResize = () => this.setState({ viewportWidth: window.innerWidth });
+    window.addEventListener('resize', this.onResize);
+    this.loadSettingsFromSheet();
+    try {
+      const raw = localStorage.getItem('productivityCalc_v1');
+      if (raw) {
+        const saved = JSON.parse(raw);
+        this.setState(saved, () => {
+          this.syncAllSheets();
+          this.startAutoSync();
+        });
+      } else {
+        this.syncAllSheets();
+        this.startAutoSync();
+      }
+    } catch (e) {}
+  }
+
+  componentWillUnmount() {
+    if (this.onResize) window.removeEventListener('resize', this.onResize);
+  }
+
+  startAutoSync() {
+    const minutes = this.props.autoSyncMinutes ?? 5;
+    if (!(this.props.autoSyncEnabled ?? true) || !minutes) return;
+    clearInterval(this._autoSyncTimer);
+    this._autoSyncTimer = setInterval(() => this.syncAllSheets(), minutes * 60 * 1000);
+  }
+
+  componentWillUnmount() {
+    clearInterval(this._autoSyncTimer);
+  }
+
+  loadDcRosterFromSheet = async () => {
+    const url = this.state.dcSheetUrl.trim();
+    if (!url) return;
+    this.setState({ dcSheetStatus: 'loading', dcSheetMessage: '' });
+    try {
+      const res = await fetch(toCsvExportUrl(url));
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const text = await res.text();
+      const rows = parseCsv(text).slice(1).filter(r => r[0] && r[0].trim());
+      if (!rows.length) throw new Error('ไม่พบข้อมูล');
+      const existingByName = {};
+      this.state.dcList.forEach(d => { existingByName[d.name] = d; });
+      const merged = rows.map(r => {
+        const name = r[0].trim();
+        const region = (r[1] || '').trim();
+        const existing = existingByName[name];
+        if (existing) return { ...existing, region: region || existing.region };
+        return { name, group: 'DC', region: region || '—', emp: 0 };
+      });
+      await this.setStateAsync({ dcList: merged, dcSheetStatus: 'success', dcSheetMessage: `ซิงก์สำเร็จ ${merged.length} สาขา จาก Google Sheet`, dataLoaded: true });
+      this.persistState();
+    } catch (err) {
+      this.setState({ dcSheetStatus: 'error', dcSheetMessage: 'เชื่อมต่อไม่สำเร็จ — ตรวจสอบว่า Sheet เปิดเป็น "Anyone with link"' });
+    }
+  };
+
+  loadDcInboundFromSheet = async () => {
+    const url = this.state.dcInboundSheetUrl.trim();
+    if (!url) return;
+    this.setState({ dcInboundSheetStatus: 'loading', dcInboundSheetMessage: '' });
+    try {
+      const res = await fetch(toCsvExportUrl(url));
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const text = await res.text();
+      const rows = parseCsv(text).slice(2); // first 2 rows are merged headers
+      const weekdayPrefixes = ['จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.'];
+      const byNameMonth = {};
+      const monthKeySet = new Set();
+      rows.forEach(r => {
+        const rawName = (r[0] || '').trim();
+        const dateStr = (r[1] || '').trim();
+        const inbound = Number(String(r[10] || '0').replace(/,/g, '')) || 0;
+        if (!rawName || !dateStr) return;
+        if (!weekdayPrefixes.some(p => dateStr.startsWith(p))) return;
+        const dm = dateStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+        if (!dm) return;
+        const monthKey = dm[2].padStart(2, '0') + '/' + dm[3];
+        monthKeySet.add(monthKey);
+        const name = rawName.replace(/^\d+\s+/, '').trim();
+        if (!byNameMonth[name]) byNameMonth[name] = {};
+        if (!byNameMonth[name][monthKey]) byNameMonth[name][monthKey] = { total: 0, days: 0 };
+        byNameMonth[name][monthKey].total += inbound;
+        byNameMonth[name][monthKey].days += 1;
+      });
+      const names = Object.keys(byNameMonth);
+      if (!names.length) throw new Error('ไม่พบข้อมูล');
+      const existingByName = {};
+      this.state.dcList.forEach(d => { existingByName[d.name] = d; });
+      const dcList = names.map(name => existingByName[name] || { name, group: 'DC', region: '\u2014', emp: 0 });
+      this.state.dcList.forEach(d => { if (!byNameMonth[d.name]) dcList.push(d); });
+      const monthsSorted = [...monthKeySet].sort((a, b) => {
+        const [am, ay] = a.split('/'); const [bm, by] = b.split('/');
+        return (Number(ay) * 12 + Number(am)) - (Number(by) * 12 + Number(bm));
+      });
+      await this.setStateAsync({ dcList, dcInboundByMonth: byNameMonth, dcInboundSheetStatus: 'success', dcInboundSheetMessage: `\u0e0b\u0e34\u0e07\u0e01\u0e4c\u0e2a\u0e33\u0e40\u0e23\u0e47\u0e08 ${names.length} \u0e2a\u0e32\u0e02\u0e32 \u00b7 ${monthsSorted.length} \u0e40\u0e14\u0e37\u0e2d\u0e19 (\u0e40\u0e09\u0e1e\u0e32\u0e30\u0e27\u0e31\u0e19 \u0e08-\u0e28)`, dataLoaded: true });
+      this.persistState(); this.updateBestMonth();
+    } catch (err) {
+      this.setState({ dcInboundSheetStatus: 'error', dcInboundSheetMessage: '\u0e40\u0e0a\u0e37\u0e48\u0e2d\u0e21\u0e15\u0e48\u0e2d\u0e44\u0e21\u0e48\u0e2a\u0e33\u0e40\u0e23\u0e47\u0e08 \u2014 \u0e15\u0e23\u0e27\u0e08\u0e2a\u0e2d\u0e1a\u0e27\u0e48\u0e32 Sheet \u0e40\u0e1b\u0e34\u0e14\u0e40\u0e1b\u0e47\u0e19 "Anyone with link"' });
+    }
+  };
+
+  loadShopFromSheet = async () => {
+    // Expects columns: Shop, สังกัด DC, zone 1, zone 2
+    const url = this.state.shopSheetUrl.trim();
+    if (!url) return;
+    this.setState({ shopSheetStatus: 'loading', shopSheetMessage: '' });
+    try {
+      const res = await fetch(toCsvExportUrl(url));
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const text = await res.text();
+      const rows = parseCsv(text).slice(1).filter(r => r[0] && r[0].trim());
+      if (!rows.length) throw new Error('ไม่พบข้อมูล');
+      const existingByName = {};
+      this.state.shopList.forEach(s => { existingByName[s.name] = s; });
+      const shopList = rows.map(r => {
+        const name = r[0].trim();
+        const dcParent = (r[1] || '').trim() || '—';
+        const region = (r[2] || '').trim() || '—';
+        const existing = existingByName[name];
+        return existing ? { ...existing, dcParent, region } : { name, dcParent, region, emp: 0, revenue: 0 };
+      });
+      await this.setStateAsync({ shopList, shopSheetStatus: 'success', shopSheetMessage: `ซิงก์สำเร็จ ${shopList.length} สาขา จาก Google Sheet`, dataLoaded: true });
+      this.persistState();
+    } catch (err) {
+      this.setState({ shopSheetStatus: 'error', shopSheetMessage: 'เชื่อมต่อไม่สำเร็จ — ตรวจสอบว่า Sheet เปิดเป็น "Anyone with link"' });
+    }
+  };
+
+  loadShopMonthlySheet(kind) {
+    return async () => {
+      const urlKey = kind === 'revenue' ? 'shopRevenueSheetUrl' : 'shopEmpSheetUrl';
+      const statusKey = kind === 'revenue' ? 'shopRevenueSheetStatus' : 'shopEmpSheetStatus';
+      const msgKey = kind === 'revenue' ? 'shopRevenueSheetMessage' : 'shopEmpSheetMessage';
+      const dataKey = kind === 'revenue' ? 'shopRevenueByMonth' : 'shopEmpByMonth';
+      const url = this.state[urlKey].trim();
+      if (!url) return;
+      this.setState({ [statusKey]: 'loading', [msgKey]: '' });
+      try {
+        const res = await fetch(toCsvExportUrl(url));
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const text = await res.text();
+        const rows = parseCsv(text);
+        const header = rows[0] || [];
+        const monthCols = header.slice(1).map(h => h.trim());
+        const byNameMonth = {};
+        rows.slice(1).forEach(r => {
+          const name = (r[0] || '').trim();
+          if (!name) return;
+          monthCols.forEach((col, idx) => {
+            const raw = r[idx + 1];
+            if (raw === undefined || raw === '') return;
+            const val = Number(String(raw).replace(/,/g, '')) || 0;
+            const monthKey = parseMonthHeader(col);
+            if (!monthKey) return;
+            if (!byNameMonth[name]) byNameMonth[name] = {};
+            byNameMonth[name][monthKey] = val;
+          });
+        });
+        const names = Object.keys(byNameMonth);
+        if (!names.length) throw new Error('ไม่พบข้อมูล');
+        const monthsSorted = Object.values(byNameMonth).reduce((set, m) => { Object.keys(m).forEach(k => set.add(k)); return set; }, new Set());
+        const monthsList = [...monthsSorted].sort((a, b) => {
+          const [am, ay] = a.split('/'); const [bm, by] = b.split('/');
+          return (Number(ay) * 12 + Number(am)) - (Number(by) * 12 + Number(bm));
+        });
+        const existingByName = {};
+        this.state.shopList.forEach(s => { existingByName[s.name] = s; });
+        const shopList = names.map(name => existingByName[name] || { name, region: '—', dcParent: '—' });
+        this.state.shopList.forEach(s => { if (!byNameMonth[s.name]) shopList.push(s); });
+        await this.setStateAsync({ shopList, [dataKey]: byNameMonth, [statusKey]: 'success', [msgKey]: `ซิงก์สำเร็จ ${names.length} สาขา จาก Google Sheet`, dataLoaded: true });
+        this.persistState(); this.updateBestMonth();
+      } catch (err) {
+        this.setState({ [statusKey]: 'error', [msgKey]: 'เชื่อมต่อไม่สำเร็จ — ตรวจสอบว่า Sheet เปิดเป็น "Anyone with link"' });
+      }
+    };
+  }
+
+  loadShopRevenueFromSheet = this.loadShopMonthlySheet('revenue');
+  loadShopEmpFromSheet = this.loadShopMonthlySheet('emp');
+
+  loadDcEmpFromSheet = async () => {
+    const url = this.state.dcEmpSheetUrl.trim();
+    if (!url) return;
+    this.setState({ dcEmpSheetStatus: 'loading', dcEmpSheetMessage: '' });
+    try {
+      const res = await fetch(toCsvExportUrl(url));
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const text = await res.text();
+      const rows = parseCsv(text);
+      const header = rows[0] || [];
+      const monthCols = header.slice(1).map(h => h.trim());
+      const byNameMonth = {};
+      rows.slice(1).forEach(r => {
+        const rawName = (r[0] || '').trim();
+        if (!rawName) return;
+        const name = rawName.replace(/^\d+\s+/, '').trim();
+        monthCols.forEach((col, idx) => {
+          const raw = r[idx + 1];
+          if (raw === undefined || raw === '') return;
+          const val = Number(String(raw).replace(/,/g, '')) || 0;
+          const monthKey = parseMonthHeader(col);
+          if (!monthKey) return;
+          if (!byNameMonth[name]) byNameMonth[name] = {};
+          byNameMonth[name][monthKey] = val;
+        });
+      });
+      const names = Object.keys(byNameMonth);
+      if (!names.length) throw new Error('ไม่พบข้อมูล');
+      const existingByName = {};
+      this.state.dcList.forEach(d => { existingByName[d.name] = d; });
+      const dcList = names.map(name => existingByName[name] || { name, group: 'DC', region: '—', emp: 0 });
+      this.state.dcList.forEach(d => { if (!byNameMonth[d.name]) dcList.push(d); });
+      const monthsSet = Object.values(byNameMonth).reduce((set, m) => { Object.keys(m).forEach(k => set.add(k)); return set; }, new Set());
+      const monthsList = [...monthsSet].sort((a, b) => {
+        const [am, ay] = a.split('/'); const [bm, by] = b.split('/');
+        return (Number(ay) * 12 + Number(am)) - (Number(by) * 12 + Number(bm));
+      });
+      await this.setStateAsync({ dcList, dcEmpByMonth: byNameMonth, dcEmpSheetStatus: 'success', dcEmpSheetMessage: `ซิงก์สำเร็จ ${names.length} สาขา จาก Google Sheet`, dataLoaded: true });
+      this.persistState(); this.updateBestMonth();
+    } catch (err) {
+      this.setState({ dcEmpSheetStatus: 'error', dcEmpSheetMessage: 'เชื่อมต่อไม่สำเร็จ — ตรวจสอบว่า Sheet เปิดเป็น "Anyone with link"' });
+    }
+  };
+
+  computeDC(d) {
+    const monthData = (this.state.dcInboundByMonth[d.name] || {})[this.state.selectedMonth];
+    const empMonth = (this.state.dcEmpByMonth[d.name] || {})[this.state.selectedMonth];
+    const emp = empMonth != null ? empMonth : (d.emp ?? 0);
+    const total = monthData ? monthData.total : 0;
+    const days = monthData ? monthData.days : 0;
+    if (!emp || !total || !days) {
+      const c = STATUS_COLORS.na;
+      return { ...d, emp, total, days, req: null, diff: null, status: 'na', prod: null, prodPerDay: null, avg: null, statusLabel: STATUS_LABEL.na, statusBg: c.bg, statusColor: c.text, diffLabel: '—', diffColor: c.text, groupLabel: GROUP_LABELS[d.group] || d.group };
+    }
+    const cfg = this.state.settings[d.group] || this.state.settings.DC;
+    const HOURS_PER_DAY = 8;
+    const avgPerDay = total / days;
+    const rawReq = avgPerDay / cfg.target;
+    const req = Math.max(cfg.minStaff, this.state.settings.roundMode === 'round' ? Math.round(rawReq) : Math.ceil(rawReq));
+    const diff = emp - req;
+    const status = diff < 0 ? 'under' : diff > 0 ? 'over' : 'meet';
+    const prod = Math.round(total / (emp * days * HOURS_PER_DAY));
+    const prodPerDay = Math.round(total / (emp * days));
+    const avg = Math.round(total / days);
+    const c = STATUS_COLORS[status];
+    return { ...d, emp, total, days, req, diff, status, prod, prodPerDay, avg, statusLabel: STATUS_LABEL[status], statusBg: c.bg, statusColor: c.text, diffLabel: (diff > 0 ? '+' : '') + diff, diffColor: status === 'under' ? c.text : status === 'over' ? c.text : '#50565a', groupLabel: GROUP_LABELS[d.group] || d.group };
+  }
+
+  computeShop(s) {
+    const revMonth = (this.state.shopRevenueByMonth[s.name] || {})[this.state.selectedMonth];
+    const empMonth = (this.state.shopEmpByMonth[s.name] || {})[this.state.selectedMonth];
+    const revenue = revMonth != null ? revMonth : (s.revenue ?? 0);
+    const emp = empMonth != null ? empMonth : (s.emp ?? 0);
+    if (!emp || !revenue) {
+      const c = STATUS_COLORS.na;
+      return { ...s, emp, revenue, req: null, diff: null, status: 'na', bpp: null, statusLabel: STATUS_LABEL.na, statusBg: c.bg, statusColor: c.text, diffLabel: '—', revenueLabel: revenue ? fmt(revenue) : '—', bppLabel: '—' };
+    }
+    const target = this.state.settings.shopTarget;
+    const rawReq = revenue / target;
+    const req = Math.max(1, this.state.settings.roundMode === 'round' ? Math.round(rawReq) : Math.ceil(rawReq));
+    const diff = emp - req;
+    const status = diff < 0 ? 'under' : diff > 0 ? 'over' : 'meet';
+    const bpp = Math.round(revenue / emp);
+    const c = STATUS_COLORS[status];
+    return { ...s, emp, revenue, req, diff, status, bpp, statusLabel: STATUS_LABEL[status], statusBg: c.bg, statusColor: c.text, diffLabel: (diff > 0 ? '+' : '') + diff, revenueLabel: fmt(revenue), bppLabel: fmt(bpp) };
+  }
+
+  // Lightweight versions of computeDC/computeShop for an arbitrary month, used by the dashboard trend chart.
+  computeDCAtMonth(d, month) {
+    const monthData = (this.state.dcInboundByMonth[d.name] || {})[month];
+    const empMonth = (this.state.dcEmpByMonth[d.name] || {})[month];
+    const emp = empMonth != null ? empMonth : (d.emp ?? 0);
+    const total = monthData ? monthData.total : 0;
+    const days = monthData ? monthData.days : 0;
+    if (!emp || !total || !days) return { status: 'na' };
+    const cfg = this.state.settings[d.group] || this.state.settings.DC;
+    const avgPerDay = total / days;
+    const rawReq = avgPerDay / cfg.target;
+    const req = Math.max(cfg.minStaff, this.state.settings.roundMode === 'round' ? Math.round(rawReq) : Math.ceil(rawReq));
+    const diff = emp - req;
+    const status = diff < 0 ? 'under' : diff > 0 ? 'over' : 'meet';
+    const prod = Math.round(total / (emp * days * 8));
+    return { status, diff, prod };
+  }
+
+  computeShopAtMonth(s, month) {
+    const revMonth = (this.state.shopRevenueByMonth[s.name] || {})[month];
+    const empMonth = (this.state.shopEmpByMonth[s.name] || {})[month];
+    const revenue = revMonth != null ? revMonth : (s.revenue ?? 0);
+    const emp = empMonth != null ? empMonth : (s.emp ?? 0);
+    if (!emp || !revenue) return { status: 'na' };
+    const target = this.state.settings.shopTarget;
+    const rawReq = revenue / target;
+    const req = Math.max(1, this.state.settings.roundMode === 'round' ? Math.round(rawReq) : Math.ceil(rawReq));
+    const diff = emp - req;
+    const status = diff < 0 ? 'under' : diff > 0 ? 'over' : 'meet';
+    const bpp = Math.round(revenue / emp);
+    return { status, diff, bpp };
+  }
+
+  renderVals() {
+    const vw = this.state.viewportWidth || (typeof window !== 'undefined' ? window.innerWidth : 1280);
+    const isMobile = vw < 768;
+    const isTablet = vw >= 768 && vw < 1100;
+    const colsFor = (n) => isMobile ? 1 : (isTablet ? Math.min(n, 3) : n);
+    const hideOnMobile = isMobile ? 'none' : 'table-cell';
+    const gridStyle = (n, gap, mb) => ({ display: 'grid', gridTemplateColumns: `repeat(${colsFor(n)}, 1fr)`, gap: gap + 'px', marginBottom: mb + 'px' });
+    const screen = this.state.screen;
+    const dcComputedAll = this.state.dcList.map(d => this.computeDC(d));
+    const shopComputed = this.state.shopList.map(s => this.computeShop(s));
+
+    const navSections = [
+      { label: 'รายงาน', items: [
+        { key: 'dashboard', label: 'ภาพรวม', icon: 'ti ti-layout-dashboard' },
+        { key: 'resultsDC', label: 'Productivity DC', icon: 'ti ti-building-store' },
+        { key: 'resultsShop', label: 'Productivity Shop', icon: 'ti ti-shopping-bag' },
+        { key: 'trend', label: 'แนวโน้ม', icon: 'ti ti-trending-up' },
+        { key: 'staffing', label: 'สถานะกำลังพล', icon: 'ti ti-users' },
+        { key: 'rotation', label: 'แผนหมุนเวียน', icon: 'ti ti-arrows-exchange' },
+      ]},
+      { label: 'ระบบ', items: [
+        { key: 'settings', label: 'ตั้งค่าระบบ', icon: 'ti ti-settings' },
+      ]},
+    ].map(sec => ({ ...sec, items: sec.items.map(item => {
+      const active = screen === item.key;
+      return { ...item, onClick: this.setScreen(item.key), style: {
+        display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 12px', fontSize: '13px', borderRadius: '10px',
+        color: active ? '#1A6FA8' : '#3e4347', cursor: 'pointer',
+        background: active ? '#daeefe' : 'transparent', fontWeight: active ? 600 : 500,
+      }};
+    })}));
+
+    const titles = {
+      import: ['นำเข้าข้อมูล', 'อัปโหลดไฟล์เพื่อเริ่มคำนวณ'],
+      dashboard: ['ภาพรวม', 'สรุปสถานะกำลังพลและ productivity ทุกสาขา'],
+      resultsDC: ['Productivity DC', 'Productivity รายสาขา'],
+      resultsShop: ['Productivity Shop', 'ยอดขายรายสาขา'],
+      trend: ['แนวโน้ม', 'Productivity รายเดือนของ DC และ Shop'],
+      staffing: ['สถานะกำลังพล', 'เปรียบเทียบพนักงานจริง vs ที่เหมาะสม'],
+      rotation: ['แผนหมุนเวียนพนักงาน', 'จับคู่กำลังพลเกิน → ขาด ในภาคเดียวกัน'],
+      settings: ['ตั้งค่าระบบ', 'เกณฑ์คำนวณและการจัดการสาขา'],
+    };
+
+    const dcAll = dcComputedAll;
+    const monthSet = new Set();
+    Object.values(this.state.dcEmpByMonth).forEach(byMonth => Object.keys(byMonth).forEach(k => monthSet.add(k)));
+    Object.values(this.state.shopEmpByMonth).forEach(byMonth => Object.keys(byMonth).forEach(k => monthSet.add(k)));
+    Object.values(this.state.dcInboundByMonth).forEach(byMonth => Object.keys(byMonth).forEach(k => monthSet.add(k)));
+    Object.values(this.state.shopRevenueByMonth).forEach(byMonth => Object.keys(byMonth).forEach(k => monthSet.add(k)));
+    const monthList = [...monthSet].sort((a, b) => {
+      const [am, ay] = a.split('/'); const [bm, by] = b.split('/');
+      return (Number(ay) * 12 + Number(am)) - (Number(by) * 12 + Number(bm));
+    });
+    const dcMeet = dcAll.filter(d => d.status === 'meet').length;
+    const dcUnderCount = dcAll.filter(d => d.status === 'under').length;
+    const dcOverCount = dcAll.filter(d => d.status === 'over').length;
+    const shopMeet = shopComputed.filter(s => s.status === 'meet').length;
+    const shopUnderCount = shopComputed.filter(s => s.status === 'under').length;
+    const shopOverCount = shopComputed.filter(s => s.status === 'over').length;
+
+    const kpis = [
+      { label: 'สาขาทั้งหมด', value: String(dcAll.length + shopComputed.length), sub: `DC ${dcAll.length} · Shop ${shopComputed.length}`, icon: 'ti ti-building-store', iconBg: '#d7ebfa', iconColor: '#1A6FA8', valColor: '#141c21' },
+      { label: 'เหมาะสม', value: String(dcMeet + shopMeet), sub: `DC ${dcMeet} · Shop ${shopMeet}`, icon: 'ti ti-circle-check', iconBg: '#c9f4d7', iconColor: '#005226', valColor: '#005226' },
+      { label: 'กำลังพลขาด', value: String(dcUnderCount + shopUnderCount), sub: `DC ${dcUnderCount} · Shop ${shopUnderCount}`, icon: 'ti ti-alert-triangle', iconBg: '#ffd7d0', iconColor: '#972527', valColor: '#972527' },
+      { label: 'กำลังพลเกิน', value: String(dcOverCount + shopOverCount), sub: `DC ${dcOverCount} · Shop ${shopOverCount}`, icon: 'ti ti-user-plus', iconBg: '#ffe6bf', iconColor: '#723f00', valColor: '#723f00' },
+    ];
+
+    const groups = ['DC', 'night', 'day', 'HUB', 'CDC', 'mini'];
+    const groupSummary = groups.map(g => {
+      const rows = dcAll.filter(d => d.group === g);
+      if (!rows.length) return null;
+      return { label: GROUP_LABELS[g], dotColor: GROUP_DOT[g], count: rows.length, meet: rows.filter(r => r.status === 'meet').length, under: rows.filter(r => r.status === 'under').length, over: rows.filter(r => r.status === 'over').length };
+    }).filter(Boolean).concat([{ label: 'Shop', dotColor: '#1D9E75', count: shopComputed.length, meet: shopMeet, under: shopUnderCount, over: shopOverCount }]);
+
+    const openDashModal = (item, type) => this.setState({ dashModalOpen: true, dashModalItem: item, dashModalType: type });
+    const allItems = [
+      ...dcAll.map(d => ({ ...d, type: 'DC' })),
+      ...shopComputed.map(s => ({ ...s, type: 'Shop' })),
+    ];
+    const underAll = allItems.filter(i => i.status === 'under').sort((a, b) => a.diff - b.diff);
+    const overAll = allItems.filter(i => i.status === 'over').sort((a, b) => b.diff - a.diff);
+    const underTotal = underAll.length, overTotal = overAll.length;
+
+    const dcUnderAll = underAll.filter(i => i.type === 'DC');
+    const dcOverAll = overAll.filter(i => i.type === 'DC');
+    const shopUnderAll = underAll.filter(i => i.type === 'Shop');
+    const shopOverAll = overAll.filter(i => i.type === 'Shop');
+    const dcUnderList = dcUnderAll.slice(0, 5).map(i => ({ ...i, diffLabel: i.diff, onClick: () => openDashModal(i, 'DC') }));
+    const dcOverList = dcOverAll.slice(0, 5).map(i => ({ ...i, diffLabel: '+' + i.diff, onClick: () => openDashModal(i, 'DC') }));
+    const shopUnderList = shopUnderAll.slice(0, 5).map(i => ({ ...i, diffLabel: i.diff, onClick: () => openDashModal(i, 'Shop') }));
+    const shopOverList = shopOverAll.slice(0, 5).map(i => ({ ...i, diffLabel: '+' + i.diff, onClick: () => openDashModal(i, 'Shop') }));
+    const dcUnderMore = Math.max(0, dcUnderAll.length - dcUnderList.length);
+    const dcOverMore = Math.max(0, dcOverAll.length - dcOverList.length);
+    const shopUnderMore = Math.max(0, shopUnderAll.length - shopUnderList.length);
+    const shopOverMore = Math.max(0, shopOverAll.length - shopOverList.length);
+    const listModalMap = {
+      dcUnder: { title: 'DC กำลังพลขาด (' + dcUnderAll.length + ')', items: dcUnderAll.map(i => ({ name: i.name, diffLabel: i.diff })), color: '#972527' },
+      dcOver: { title: 'DC กำลังพลเกิน (' + dcOverAll.length + ')', items: dcOverAll.map(i => ({ name: i.name, diffLabel: '+' + i.diff })), color: '#723f00' },
+      shopUnder: { title: 'Shop กำลังพลขาด (' + shopUnderAll.length + ')', items: shopUnderAll.map(i => ({ name: i.name, diffLabel: i.diff })), color: '#972527' },
+      shopOver: { title: 'Shop กำลังพลเกิน (' + shopOverAll.length + ')', items: shopOverAll.map(i => ({ name: i.name, diffLabel: '+' + i.diff })), color: '#723f00' },
+    };
+    const activeListModal = listModalMap[this.state.listModalKind] || { title: '', items: [], color: '#8a9095' };
+
+    // Dashboard: data gaps
+    const naItems = [
+      ...dcAll.filter(d => d.status === 'na').map(d => d.name),
+      ...shopComputed.filter(s => s.status === 'na').map(s => s.name),
+    ];
+    const dcNaCount = dcAll.filter(d => d.status === 'na').length;
+    const shopNaCount = shopComputed.filter(s => s.status === 'na').length;
+    const naTotal = naItems.length;
+    const naList = naItems.slice(0, 20);
+
+    // Dashboard: hero mismatch + critical branch (split by DC / Shop)
+    const findCritical = (items) => {
+      const u = items.filter(i => i.status === 'under').sort((a, b) => a.diff - b.diff)[0];
+      const o = items.filter(i => i.status === 'over').sort((a, b) => b.diff - a.diff)[0];
+      if (!u && !o) return { name: 'ไม่มี', label: '—', color: '#8a9095' };
+      const uAbs = u ? Math.abs(u.diff) : -1;
+      const oAbs = o ? o.diff : -1;
+      if (uAbs >= oAbs) return { name: u.name, label: `ขาด ${Math.abs(u.diff)} คน`, color: '#972527' };
+      return { name: o.name, label: `เกิน ${o.diff} คน`, color: '#723f00' };
+    };
+    const dcItems = allItems.filter(i => i.type === 'DC');
+    const shopItems = allItems.filter(i => i.type === 'Shop');
+    const dcCriticalBranch = findCritical(dcItems);
+    const shopCriticalBranch = findCritical(shopItems);
+    const dcMismatchTotal = dcUnderCount + dcOverCount;
+    const shopMismatchTotal = shopUnderCount + shopOverCount;
+    const mismatchColor = (n) => n === 0 ? '#005226' : n > 6 ? '#972527' : '#723f00';
+    const dcMismatchColor = mismatchColor(dcMismatchTotal);
+    const shopMismatchColor = mismatchColor(shopMismatchTotal);
+
+
+    // Dashboard: trend charts (last up to 6 months) — DC productivity + Shop revenue/person
+    const trendMonths = monthList;
+    const trendSeries = trendMonths.map(m => {
+      const dcVals = this.state.dcList.map(d => this.computeDCAtMonth(d, m));
+      const shopVals = this.state.shopList.map(s => this.computeShopAtMonth(s, m));
+      const dcValsWithData = dcVals.filter(v => v.status !== 'na');
+      const shopValsWithData = shopVals.filter(v => v.status !== 'na');
+      const avgProd = dcValsWithData.length ? Math.round(dcValsWithData.reduce((a, v) => a + v.prod, 0) / dcValsWithData.length) : null;
+      const avgBpp = shopValsWithData.length ? Math.round(shopValsWithData.reduce((a, v) => a + v.bpp, 0) / shopValsWithData.length) : null;
+      const gap = dcVals.filter(v => v.status === 'under' || v.status === 'over').length + shopVals.filter(v => v.status === 'under' || v.status === 'over').length;
+      return { month: m, avgProd, avgBpp, gap };
+    });
+    const trendWidth = 340, trendHeight = 190;
+    const trendPageMonths = isMobile ? trendMonths.slice(-3) : trendMonths;
+    const trendDcRowsRaw = this.state.dcList.map(d => {
+      const monthVals = trendPageMonths.map(m => this.computeDCAtMonth(d, m));
+      const cells = monthVals.map(v => ({ label: v.status !== 'na' && v.prod ? String(v.prod) : '—' }));
+      const last = monthVals[monthVals.length - 1], prev = monthVals[monthVals.length - 2];
+      let pctLabel = '—', pctColor = '#8a9095';
+      if (last && prev && last.status !== 'na' && prev.status !== 'na' && prev.prod) {
+        const pct = Math.round(((last.prod - prev.prod) / prev.prod) * 100);
+        pctLabel = (pct > 0 ? '▲ +' : pct < 0 ? '▼ ' : '— ') + pct + '%';
+        pctColor = pct > 0 ? '#005226' : pct < 0 ? '#972527' : '#8a9095';
+      }
+      return { name: d.name, cells, pctLabel, pctColor, empType: 'DC' };
+    });
+    const trendShopRowsRaw = this.state.shopList.map(s => {
+      const monthVals = trendPageMonths.map(m => this.computeShopAtMonth(s, m));
+      const cells = monthVals.map(v => ({ label: v.status !== 'na' && v.bpp ? fmt(v.bpp) : '—' }));
+      const last = monthVals[monthVals.length - 1], prev = monthVals[monthVals.length - 2];
+      let pctLabel = '—', pctColor = '#8a9095';
+      if (last && prev && last.status !== 'na' && prev.status !== 'na' && prev.bpp) {
+        const pct = Math.round(((last.bpp - prev.bpp) / prev.bpp) * 100);
+        pctLabel = (pct > 0 ? '▲ +' : pct < 0 ? '▼ ' : '— ') + pct + '%';
+        pctColor = pct > 0 ? '#005226' : pct < 0 ? '#972527' : '#8a9095';
+      }
+      return { name: s.name, cells, pctLabel, pctColor, empType: 'Shop' };
+    });
+    const trendSortKey = this.state.trendSortKey || 'name';
+    const trendSortDir = this.state.trendSortDir === 'desc' ? -1 : 1;
+    const parseCellVal = (lbl) => lbl === '—' ? -Infinity : parseFloat(lbl.replace(/[^-\d.]/g, ''));
+    const sortTrend = (rows) => rows.slice().sort((a, b) => {
+      if (trendSortKey === 'name') return a.name.localeCompare(b.name) * trendSortDir;
+      if (trendSortKey === 'pct') {
+        const av = a.pctLabel === '—' ? -Infinity : parseInt(a.pctLabel.replace(/[^-\d]/g, ''), 10);
+        const bv = b.pctLabel === '—' ? -Infinity : parseInt(b.pctLabel.replace(/[^-\d]/g, ''), 10);
+        return (av - bv) * trendSortDir;
+      }
+      if (trendSortKey.startsWith('m')) {
+        const idx = parseInt(trendSortKey.slice(1), 10);
+        const av = a.cells[idx] ? parseCellVal(a.cells[idx].label) : -Infinity;
+        const bv = b.cells[idx] ? parseCellVal(b.cells[idx].label) : -Infinity;
+        return (av - bv) * trendSortDir;
+      }
+      return 0;
+    });
+    const trendQuery = (this.state.trendQuery || '').trim().toLowerCase();
+    const filterTrend = (rows) => trendQuery ? rows.filter(r => r.name.toLowerCase().includes(trendQuery)) : rows;
+    const openEmpModal = (name, type) => this.setState({ empModalOpen: true, empModalName: name, empModalType: type });
+    const trendDcRows = filterTrend(sortTrend(trendDcRowsRaw)).map((r, i) => ({ ...r, idx: i + 1, onClick: () => openEmpModal(r.name, 'DC') }));
+    const trendShopRows = filterTrend(sortTrend(trendShopRowsRaw)).map((r, i) => ({ ...r, idx: i + 1, onClick: () => openEmpModal(r.name, 'Shop') }));
+    const empModalByMonth = this.state.empModalType === 'Shop' ? this.state.shopEmpByMonth : this.state.dcEmpByMonth;
+    const empModalItem = this.state.empModalName ? (this.state.empModalType === 'Shop' ? this.state.shopList : this.state.dcList).find(x => x.name === this.state.empModalName) : null;
+    const empModalRows = this.state.empModalOpen ? trendPageMonths.map(m => {
+      const byMonth = (empModalByMonth[this.state.empModalName] || {});
+      const v = byMonth[m] != null ? byMonth[m] : (empModalItem ? (empModalItem.emp ?? null) : null);
+      return { month: m, emp: v != null ? v : '—' };
+    }) : [];
+    const trendAvgRow = (rows) => {
+      if (!rows.length) return null;
+      const n = trendPageMonths.length;
+      const cells = [];
+      for (let i = 0; i < n; i++) {
+        const vals = rows.map(r => parseCellVal(r.cells[i] ? r.cells[i].label : '—')).filter(v => v !== -Infinity);
+        cells.push({ label: vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length).toLocaleString() : '—' });
+      }
+      return { cells };
+    };
+    const trendDcAvgRow = trendAvgRow(trendDcRows);
+    const trendShopAvgRow = trendAvgRow(trendShopRows);
+    const trendExportCsv = (rows, valueLabel) => {
+      const header = ['#', 'สาขา', ...trendPageMonths, 'แนวโน้ม'];
+      const csvRows = rows.map(r => [r.idx, r.name, ...r.cells.map(c => c.label), r.pctLabel]);
+      const csv = [header, ...csvRows].map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+      const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = `trend-${valueLabel}.csv`; a.click();
+      URL.revokeObjectURL(url);
+    };
+    const trendDcExportCsv = () => trendExportCsv(trendDcRows, 'dc');
+    const trendShopExportCsv = () => trendExportCsv(trendShopRows, 'shop');
+    const onTrendSort = (key) => this.setState(s => ({ trendSortKey: key, trendSortDir: s.trendSortKey === key && s.trendSortDir === 'asc' ? 'desc' : 'asc' }));
+    const trendSortIcon = (key) => trendSortKey === key ? (this.state.trendSortDir === 'desc' ? ' ▼' : ' ▲') : '';
+    const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const formatMonthLabel = (m) => {
+      const [mm, yyyy] = m.split('/');
+      const mi = parseInt(mm, 10) - 1;
+      const yy = String(Number(yyyy) - 543).slice(-2);
+      return MONTH_ABBR[mi] ? MONTH_ABBR[mi] + yy : m;
+    };
+    const trendMonthCols = trendPageMonths.map((m, i) => {
+      const key = 'm' + i;
+      const active = trendSortKey === key;
+      return {
+        label: formatMonthLabel(m) + (active ? (this.state.trendSortDir === 'desc' ? ' ▼' : ' ▲') : ''),
+        onClick: () => onTrendSort(key),
+        style: { padding: '10px 14px', textAlign: 'right', fontSize: '11px', color: active ? '#1A6FA8' : '#6d7277', background: '#f6f9fb', cursor: 'pointer', fontWeight: active ? 700 : 400, userSelect: 'none' },
+      };
+    });
+    const buildTrendChart = (valueKey, fmtFn) => {
+      const padX = 30, padTop = 34, padBottom = 30;
+      const validVals = trendSeries.map(t => t[valueKey]).filter(v => v != null);
+      const vMin = validVals.length ? Math.min(...validVals) : 0;
+      const vMax = validVals.length ? Math.max(...validVals) : 1;
+      const vRange = (vMax - vMin) || 1;
+      const n = Math.max(1, trendSeries.length - 1);
+      const points = trendSeries.map((t, i) => {
+        const v = t[valueKey];
+        const x = trendSeries.length === 1 ? trendWidth / 2 : padX + (i * (trendWidth - padX * 2)) / n;
+        const y = v == null ? trendHeight - padBottom : (trendHeight - padBottom) - ((v - vMin) / vRange) * (trendHeight - padTop - padBottom);
+        const labelY = trendHeight - 8;
+        const valueY = Math.max(18, Math.round(y) - 16);
+        const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const monthNum = parseInt(t.month.split('/')[0], 10);
+        return {
+          x: Math.round(x), y: Math.round(y), month: MONTH_ABBR[monthNum - 1] || t.month, value: v != null ? fmtFn(v) : '—', hasValue: v != null,
+          xPct: (x / trendWidth) * 100, labelYPct: (labelY / trendHeight) * 100, valueYPct: (valueY / trendHeight) * 100,
+        };
+      });
+      const polyline = points.filter(p => p.hasValue).map(p => `${p.x},${p.y}`).join(' ');
+      const validPts = points.filter(p => p.hasValue);
+      const smoothPath = buildSmoothPath(validPts);
+      const baseline = trendHeight - padBottom + 4;
+      const areaPath = validPts.length > 1
+        ? `${smoothPath} L ${validPts[validPts.length - 1].x} ${baseline} L ${validPts[0].x} ${baseline} Z`
+        : '';
+      return { points, polyline, smoothPath, areaPath };
+    };
+    const dcTrendChart = buildTrendChart('avgProd', v => String(v));
+    const shopTrendChart = buildTrendChart('avgBpp', v => (v / 1000).toFixed(0) + 'k');
+    const trendPoints = dcTrendChart.points, trendPolyline = dcTrendChart.polyline, trendSmoothPath = dcTrendChart.smoothPath, trendAreaPath = dcTrendChart.areaPath;
+    const shopTrendPoints = shopTrendChart.points, shopTrendPolyline = shopTrendChart.polyline, shopTrendSmoothPath = shopTrendChart.smoothPath, shopTrendAreaPath = shopTrendChart.areaPath;
+    const lastTrend = trendSeries[trendSeries.length - 1];
+    const prevTrend = trendSeries[trendSeries.length - 2];
+    let trendDeltaLabel = '—', trendDeltaColor = '#8a9095', trendDeltaSub = 'ยังไม่มีข้อมูลพอเทียบ';
+    if (lastTrend && prevTrend && lastTrend.gap != null && prevTrend.gap != null) {
+      const delta = lastTrend.gap - prevTrend.gap;
+      if (delta < 0) { trendDeltaLabel = `▼ ${Math.abs(delta)}`; trendDeltaColor = '#005226'; trendDeltaSub = 'สาขาที่มีปัญหากำลังพลลดลง (ดีขึ้น)'; }
+      else if (delta > 0) { trendDeltaLabel = `▲ ${delta}`; trendDeltaColor = '#972527'; trendDeltaSub = 'สาขาที่มีปัญหากำลังพลเพิ่มขึ้น (แย่ลง)'; }
+      else { trendDeltaLabel = '± 0'; trendDeltaColor = '#595e63'; trendDeltaSub = 'ไม่เปลี่ยนแปลงจากเดือนก่อน'; }
+    }
+
+    // Dashboard: DC vs Shop split
+    const dcShopSplit = [
+      { label: 'DC', count: dcAll.length, meet: dcMeet, under: dcUnderCount, over: dcOverCount },
+      { label: 'Shop', count: shopComputed.length, meet: shopMeet, under: shopUnderCount, over: shopOverCount },
+    ];
+
+    // Dashboard: region breakdown
+    const regionMap = {};
+    allItems.filter(i => i.region && i.region !== '—').forEach(i => {
+      if (!regionMap[i.region]) regionMap[i.region] = { region: i.region, under: 0, over: 0, total: 0 };
+      regionMap[i.region].total++;
+      if (i.status === 'under') regionMap[i.region].under++;
+      if (i.status === 'over') regionMap[i.region].over++;
+    });
+    const regionSorted = Object.values(regionMap).sort((a, b) => (b.under + b.over) - (a.under + a.over));
+    const regionDashRows = regionSorted.slice(0, 6).map(r => ({ ...r, meetLabel: r.total - r.under - r.over, underLabel: r.under, overLabel: '+' + r.over,
+      onClick: () => this.setState({ screen: 'resultsDC', dcRegionFilter: r.region, shopRegionFilter: r.region }) }));
+    const regionDashMore = Math.max(0, regionSorted.length - regionDashRows.length);
+    const regionDashTotal = { meetLabel: dcMeet + shopMeet, underLabel: dcUnderCount + shopUnderCount, overLabel: '+' + (dcOverCount + shopOverCount) };
+
+    // Results DC table — sortable columns
+    const dcSortKey = this.state.dcSortKey || 'prod';
+    const dcSortDir = this.state.dcSortDir || 'desc';
+    const dcColumnDefs = [
+      { key: 'name', label: 'DC', align: 'left' },
+      { key: 'emp', label: 'พนักงาน', align: 'right' },
+      { key: 'avg', label: 'เฉลี่ย/วัน', align: 'right' },
+      { key: 'prodDay', label: 'Prod/วัน', align: 'right' },
+      { key: 'prod', label: 'Prod/ชม.', align: 'right' },
+      { key: 'req', label: 'เหมาะสม', align: 'right' },
+      { key: 'diff', label: 'ผลต่าง', align: 'right' },
+    ];
+    const dcColumns = dcColumnDefs.map(c => {
+      const active = dcSortKey === c.key;
+      const arrow = active ? (dcSortDir === 'asc' ? ' \u25b2' : ' \u25bc') : '';
+      return {
+        ...c,
+        displayLabel: c.label + arrow,
+        onClick: () => this.setState(s => ({
+          dcSortKey: c.key,
+          dcSortDir: s.dcSortKey === c.key ? (s.dcSortDir === 'asc' ? 'desc' : 'asc') : (c.key === 'name' || c.key === 'group' ? 'asc' : 'desc'),
+        })),
+        style: { padding: '10px 14px', textAlign: c.align, fontSize: '11px', color: active ? '#1A6FA8' : '#6d7277', background: '#f6f9fb', cursor: 'pointer', fontWeight: active ? 700 : 400, whiteSpace: 'nowrap', userSelect: 'none', display: ['emp', 'avg', 'prodDay', 'req'].includes(c.key) ? hideOnMobile : 'table-cell' },
+      };
+    });
+    const dcPrevMonth = monthList[monthList.indexOf(this.state.selectedMonth) - 1];
+    let dcTableRows = dcAll.filter(d => (!this.state.dcRegionFilter || d.region === this.state.dcRegionFilter) && (!this.state.dcStatusFilter || d.status === this.state.dcStatusFilter) && d.name.includes(this.state.dcQuery));
+    const dcDir = dcSortDir === 'asc' ? 1 : -1;
+    dcTableRows.sort((a, b) => {
+      if (dcSortKey === 'name') return dcDir * a.name.localeCompare(b.name, 'th');
+      const av = dcSortKey === 'prodDay' ? a.prodPerDay : a[dcSortKey];
+      const bv = dcSortKey === 'prodDay' ? b.prodPerDay : b[dcSortKey];
+      return dcDir * ((av ?? 0) - (bv ?? 0));
+    });
+    dcTableRows = dcTableRows.map((r, i) => {
+      let trendLabel = '—', trendColor = '#8a9095';
+      if (dcPrevMonth) {
+        const prevC = this.computeDCAtMonth(r, dcPrevMonth);
+        if (prevC.status !== 'na' && prevC.prod) {
+          const pct = Math.round(((r.prod - prevC.prod) / prevC.prod) * 100);
+          trendLabel = (pct > 0 ? '▲ +' : pct < 0 ? '▼ ' : '— ') + pct + '%';
+          trendColor = pct > 0 ? '#005226' : pct < 0 ? '#972527' : '#8a9095';
+        }
+      }
+      return { ...r, idx: i + 1, group: r.groupLabel, prod: r.prod ?? '—', prodDay: r.prodPerDay ?? '—', avg: r.avg ?? '—', req: r.req ?? '—', trendLabel, trendColor };
+    });
+    const dcExportCsv = () => {
+      const header = ['ลำดับ', 'DC', 'พนักงาน', 'เฉลี่ย/วัน', 'Productivity(กล่อง/คน/วัน)', 'Productivity(กล่อง/คน/ชม.)', 'เหมาะสม', 'ผลต่าง', 'สถานะ'];
+      const rows = dcTableRows.map(r => [r.idx, r.name, r.emp, r.avg, r.prodDay, r.prod, r.req, r.diffLabel, r.statusLabel]);
+      const csv = [header, ...rows].map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `dc-productivity-${this.state.selectedMonth}.csv`; a.click();
+      URL.revokeObjectURL(url);
+    };
+
+    const dcWithData = dcAll.filter(d => d.status !== 'na');
+    const dcAvgProd = dcWithData.length ? Math.round(dcWithData.reduce((a, d) => a + d.prod, 0) / dcWithData.length) : 0;
+    const dcForRegion = dcAll.filter(d => !this.state.dcRegionFilter || d.region === this.state.dcRegionFilter);
+    const dcForRegionWithData = dcForRegion.filter(d => d.status !== 'na');
+    const dcResultsTotal = dcForRegion.length;
+    const dcResultsAvgProd = dcForRegionWithData.length ? Math.round(dcForRegionWithData.reduce((a, d) => a + d.prod, 0) / dcForRegionWithData.length) : 0;
+    const dcResultsUnderCount = dcForRegion.filter(d => d.status === 'under').length;
+    const dcResultsOverCount = dcForRegion.filter(d => d.status === 'over').length;
+    const dcRanked = dcWithData.slice().sort((a, b) => b.prod - a.prod);
+    const dcTop5 = dcRanked.slice(0, 5).map((d, i) => ({ rank: i + 1, name: d.name, value: d.prod, onClick: () => openDashModal(d, 'DC') }));
+    const dcBottom5 = dcRanked.slice(-5).reverse().map((d, i) => ({ rank: i + 1, name: d.name, value: d.prod, onClick: () => openDashModal(d, 'DC') }));
+    const shopWithData = shopComputed.filter(s => s.status !== 'na');
+    const shopSortKey = this.state.shopSortKey || 'bpp';
+    const shopSortDir = this.state.shopSortDir || 'desc';
+    const shopColumnDefs = [
+      { key: 'name', label: 'Shop', align: 'left' },
+      { key: 'revenue', label: 'ยอดขาย', align: 'right' },
+      { key: 'emp', label: 'พนักงาน', align: 'right' },
+      { key: 'bpp', label: 'บาท/คน', align: 'right' },
+      { key: 'req', label: 'เหมาะสม', align: 'right' },
+      { key: 'diff', label: 'ผลต่าง', align: 'right' },
+    ];
+    const shopColumns = shopColumnDefs.map(c => {
+      const active = shopSortKey === c.key;
+      const arrow = active ? (shopSortDir === 'asc' ? ' \u25b2' : ' \u25bc') : '';
+      return {
+        ...c,
+        displayLabel: c.label + arrow,
+        onClick: () => this.setState(s => ({
+          shopSortKey: c.key,
+          shopSortDir: s.shopSortKey === c.key ? (s.shopSortDir === 'asc' ? 'desc' : 'asc') : (c.key === 'name' ? 'asc' : 'desc'),
+        })),
+        style: { padding: '10px 14px', textAlign: c.align, fontSize: '11px', color: active ? '#1A6FA8' : '#6d7277', background: '#f6f9fb', cursor: 'pointer', fontWeight: active ? 700 : 400, whiteSpace: 'nowrap', userSelect: 'none', display: ['emp', 'req'].includes(c.key) ? hideOnMobile : 'table-cell' },
+      };
+    });
+    let shopTableRows = shopComputed.filter(s => (!this.state.shopRegionFilter || s.region === this.state.shopRegionFilter) && (!this.state.shopStatusFilter || s.status === this.state.shopStatusFilter) && s.name.includes(this.state.shopQuery));
+    const shopDir = shopSortDir === 'asc' ? 1 : -1;
+    shopTableRows.sort((a, b) => {
+      if (shopSortKey === 'name') return shopDir * a.name.localeCompare(b.name, 'th');
+      return shopDir * ((a[shopSortKey] ?? 0) - (b[shopSortKey] ?? 0));
+    });
+    const shopPrevMonth = monthList[monthList.indexOf(this.state.selectedMonth) - 1];
+    shopTableRows = shopTableRows.map(r => {
+      let trendLabel = '—', trendColor = '#8a9095';
+      if (shopPrevMonth) {
+        const prevC = this.computeShopAtMonth(r, shopPrevMonth);
+        if (prevC.status !== 'na' && prevC.bpp) {
+          const pct = Math.round(((r.bpp - prevC.bpp) / prevC.bpp) * 100);
+          trendLabel = (pct > 0 ? '▲ +' : pct < 0 ? '▼ ' : '— ') + pct + '%';
+          trendColor = pct > 0 ? '#005226' : pct < 0 ? '#972527' : '#8a9095';
+        }
+      }
+      return { ...r, trendLabel, trendColor };
+    });
+    shopTableRows = shopTableRows.map((r, i) => ({ ...r, idx: i + 1 }));
+    const shopExportCsv = () => {
+      const header = ['ลำดับ', 'Shop', 'ยอดขาย(บาท)', 'พนักงาน', 'บาท/คน', 'เหมาะสม', 'ผลต่าง', 'สถานะ'];
+      const rows = shopTableRows.map(r => [r.idx, r.name, r.revenue, r.emp, r.bpp, r.req, r.diffLabel, r.statusLabel]);
+      const csv = [header, ...rows].map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `shop-productivity-${this.state.selectedMonth}.csv`; a.click();
+      URL.revokeObjectURL(url);
+    };
+    const shopForRegion = shopComputed.filter(s => !this.state.shopRegionFilter || s.region === this.state.shopRegionFilter);
+    const shopForRegionWithData = shopForRegion.filter(s => s.status !== 'na');
+    const shopResultsTotal = shopForRegion.length;
+    const shopResultsAvgBpp = shopForRegionWithData.length ? fmt(shopForRegionWithData.reduce((a, s) => a + s.bpp, 0) / shopForRegionWithData.length) : 0;
+    const shopResultsUnderCount = shopForRegion.filter(s => s.status === 'under').length;
+    const shopResultsOverCount = shopForRegion.filter(s => s.status === 'over').length;
+    const shopResultsRevenue = fmt(shopForRegionWithData.reduce((a, s) => a + s.revenue, 0));
+    const shopKpiStyle = (match, color, bg) => ({ background: bg || '#fff', borderRadius: '14px', padding: '16px 18px', boxShadow: '0 1px 2px rgba(20,30,50,0.04), 0 8px 24px rgba(20,30,50,0.03)', cursor: 'pointer', position: 'relative', overflow: 'hidden', border: match ? `2px solid ${color}` : '2px solid transparent', textAlign: 'left' });
+    const shopKpiAllStyle = shopKpiStyle(!this.state.shopStatusFilter, '#1A6FA8');
+    const shopKpiUnderStyle = shopKpiStyle(this.state.shopStatusFilter === 'under', '#972527', '#fdece9');
+    const shopKpiOverStyle = shopKpiStyle(this.state.shopStatusFilter === 'over', '#723f00', '#fdf1de');
+    const shopTotalRevenue = fmt(shopWithData.reduce((a, s) => a + s.revenue, 0));
+    const shopAvgBpp = shopWithData.length ? fmt(shopWithData.reduce((a, s) => a + s.bpp, 0) / shopWithData.length) : 0;
+    const shopRanked = shopWithData.slice().sort((a, b) => b.bpp - a.bpp);
+    const shopTop5 = shopRanked.slice(0, 5).map((s, i) => ({ rank: i + 1, name: s.name, value: fmt(s.bpp), onClick: () => openDashModal(s, 'Shop') }));
+    const shopBottom5 = shopRanked.slice(-5).reverse().map((s, i) => ({ rank: i + 1, name: s.name, value: fmt(s.bpp), onClick: () => openDashModal(s, 'Shop') }));
+
+    // Staffing (DC + Shop combined)
+    const staffSource = [
+      ...dcAll.map(d => ({ ...d, type: 'DC' })),
+      ...shopComputed.map(s => ({ ...s, type: 'Shop' })),
+    ];
+    const staffTypeFilter = this.state.staffTypeFilter;
+    const staffByType = staffTypeFilter ? staffSource.filter(r => r.type === staffTypeFilter) : staffSource;
+    const staffQueryLc = (this.state.staffQuery || '').trim().toLowerCase();
+    const staffByQuery = staffQueryLc ? staffByType.filter(r => r.name.toLowerCase().includes(staffQueryLc)) : staffByType;
+    const staffStatusFilter = this.state.staffStatusFilter;
+    const staffUnder = staffByType.filter(r => r.status === 'under').length;
+    const staffMeet = staffByType.filter(r => r.status === 'meet').length;
+    const staffOver = staffByType.filter(r => r.status === 'over').length;
+    const staffFilterCards = [
+      { key: 'under', label: 'กำลังพลขาด', value: staffUnder, valColor: '#972527', icon: 'ti ti-alert-triangle', iconColor: '#fdece9' },
+      { key: 'meet', label: 'เหมาะสม', value: staffMeet, valColor: '#005226', icon: 'ti ti-circle-check', iconColor: '#eaf7ef' },
+      { key: 'over', label: 'กำลังพลเกิน', value: staffOver, valColor: '#723f00', icon: 'ti ti-user-plus', iconColor: '#fdf1de' },
+      { key: '', label: 'ทั้งหมด', value: staffByType.length, valColor: '#141c21', icon: 'ti ti-users', iconColor: '#eef2f5' },
+    ].map(c => ({ ...c, onClick: () => this.setState({ staffStatusFilter: c.key }), style: {
+      background: '#fff', borderRadius: '14px', padding: '14px 16px', cursor: 'pointer', position: 'relative', overflow: 'hidden',
+      boxShadow: staffStatusFilter === c.key ? '0 2px 6px rgba(20,30,50,0.1), 0 8px 20px rgba(20,30,50,0.08)' : '0 2px 6px rgba(20,30,50,0.08), 0 8px 20px rgba(20,30,50,0.06)',
+      border: staffStatusFilter === c.key ? '1.5px solid #c7dbea' : '1.5px solid #dde2e6',
+    }}));
+    const staffSortKey = this.state.staffSortKey;
+    const staffSortDir = this.state.staffSortDir;
+    const staffDir = staffSortDir === 'asc' ? 1 : -1;
+    const staffTableRows = staffByQuery.filter(r => !staffStatusFilter || r.status === staffStatusFilter).slice().sort((a, b) => {
+      let av = a[staffSortKey], bv = b[staffSortKey];
+      if (av == null) av = staffSortKey === 'diff' ? 0 : '';
+      if (bv == null) bv = staffSortKey === 'diff' ? 0 : '';
+      if (typeof av === 'string') return av.localeCompare(bv) * staffDir;
+      return (av - bv) * staffDir;
+    });
+    const staffSortIcon = (key) => staffSortKey === key ? (staffSortDir === 'asc' ? ' ▲' : ' ▼') : '';
+    const onStaffSort = (key) => this.setState(s => ({ staffSortKey: key, staffSortDir: s.staffSortKey === key && s.staffSortDir === 'asc' ? 'desc' : 'asc' }));
+    staffTableRows.forEach((r, i) => { r.idx = i + 1; });
+
+    // Rotation
+    const regions = [...new Set([...dcAll.map(d => d.region), ...shopComputed.map(s => s.region)])];
+    const regionSummary = regions.map(region => {
+      const items = allItems.filter(i => i.region === region);
+      const under = items.filter(i => i.status === 'under');
+      const over = items.filter(i => i.status === 'over');
+      const rotatable = Math.min(under.reduce((a, i) => a + Math.abs(i.diff), 0), over.reduce((a, i) => a + i.diff, 0));
+      return { region, count: items.length, under: under.length, over: over.length, rotatable };
+    });
+    const worstRegion = regionSummary.reduce((best, r) => (r.under + r.over) > (best ? best.under + best.over : -1) ? r : best, null);
+
+    const shopRevenueTotalNow = shopWithData.reduce((a, s) => a + s.revenue, 0);
+    const shopPrevMonthForSummary = monthList[monthList.indexOf(this.state.selectedMonth) - 1];
+    let shopRevenuePctLabel = '—', shopRevenuePctColor = '#8a9095';
+    if (shopPrevMonthForSummary) {
+      const prevVals = this.state.shopList.map(s => this.computeShopAtMonth(s, shopPrevMonthForSummary)).filter(v => v.status !== 'na');
+      const prevTotal = prevVals.reduce((a, v) => a + (v.revenue || 0), 0);
+      if (prevTotal > 0) {
+        const pct = Math.round(((shopRevenueTotalNow - prevTotal) / prevTotal) * 100);
+        shopRevenuePctLabel = (pct > 0 ? '▲ +' : pct < 0 ? '▼ ' : '± ') + pct + '%';
+        shopRevenuePctColor = pct > 0 ? '#005226' : pct < 0 ? '#972527' : '#595e63';
+      }
+    }
+    const shopBppAvgNow = shopWithData.length ? Math.round(shopWithData.reduce((a, s) => a + s.bpp, 0) / shopWithData.length) : 0;
+    const dcPrevMonthForSummary = monthList[monthList.indexOf(this.state.selectedMonth) - 1];
+    let dcProdPctLabel = '—', dcProdPctColor = '#8a9095', shopBppPctLabel = '—', shopBppPctColor = '#8a9095';
+    if (dcPrevMonthForSummary) {
+      const prevDc = this.state.dcList.map(d => this.computeDCAtMonth(d, dcPrevMonthForSummary)).filter(v => v.status !== 'na');
+      const prevDcAvg = prevDc.length ? prevDc.reduce((a, v) => a + v.prod, 0) / prevDc.length : 0;
+      if (prevDcAvg > 0) {
+        const pct = Math.round(((dcAvgProd - prevDcAvg) / prevDcAvg) * 100);
+        dcProdPctLabel = (pct > 0 ? '▲ +' : pct < 0 ? '▼ ' : '± ') + pct + '%';
+        dcProdPctColor = pct > 0 ? '#005226' : pct < 0 ? '#972527' : '#595e63';
+      }
+      const prevShop = this.state.shopList.map(s => this.computeShopAtMonth(s, dcPrevMonthForSummary)).filter(v => v.status !== 'na');
+      const prevShopAvg = prevShop.length ? prevShop.reduce((a, v) => a + v.bpp, 0) / prevShop.length : 0;
+      if (prevShopAvg > 0) {
+        const pct = Math.round(((shopBppAvgNow - prevShopAvg) / prevShopAvg) * 100);
+        shopBppPctLabel = (pct > 0 ? '▲ +' : pct < 0 ? '▼ ' : '± ') + pct + '%';
+        shopBppPctColor = pct > 0 ? '#005226' : pct < 0 ? '#972527' : '#595e63';
+      }
+    }
+    const rotationPairs = [];
+    const rotUnders = allItems.filter(i => i.status === 'under').map(i => ({ ...i, remaining: Math.abs(i.diff) }));
+    const rotOvers = allItems.filter(i => i.status === 'over').map(i => ({ ...i, remaining: i.diff }));
+
+    // Step 1: Shop ที่ขาด ใช้คนเกินจาก DC ต้นสังกัดก่อน
+    rotUnders.forEach(u => {
+      if (u.type !== 'Shop' || !u.dcParent || u.remaining <= 0) return;
+      const parentOver = rotOvers.find(o => o.type === 'DC' && o.name === u.dcParent && o.remaining > 0);
+      if (parentOver) {
+        const move = Math.min(u.remaining, parentOver.remaining);
+        rotationPairs.push({ region: u.region, overName: parentOver.name, overDiff: parentOver.remaining, underName: u.name, underDiff: u.remaining, move, matchType: 'parent', matchLabel: 'ดีซีต้นสังกัด' });
+        u.remaining -= move;
+        parentOver.remaining -= move;
+      }
+    });
+
+    // Step 1b: DC ที่ขาด ใช้คนเกินจาก Shop ในสังกัดเดียวกันก่อน
+    rotUnders.forEach(u => {
+      if (u.type !== 'DC' || u.remaining <= 0) return;
+      const childOver = rotOvers.find(o => o.type === 'Shop' && o.dcParent === u.name && o.remaining > 0);
+      if (childOver) {
+        const move = Math.min(u.remaining, childOver.remaining);
+        rotationPairs.push({ region: u.region, overName: childOver.name, overDiff: childOver.remaining, underName: u.name, underDiff: u.remaining, move, matchType: 'parent', matchLabel: 'สังกัดเดียวกัน' });
+        u.remaining -= move;
+        childOver.remaining -= move;
+      }
+    });
+
+    // Step 2: ที่เหลือ จับคู่ในภาคเดียวกัน (มาก↔มาก ก่อน)
+    regions.forEach(region => {
+      const ru = rotUnders.filter(u => u.region === region && u.remaining > 0).sort((a, b) => b.remaining - a.remaining);
+      const ro = rotOvers.filter(o => o.region === region && o.remaining > 0).sort((a, b) => b.remaining - a.remaining);
+      let ui = 0, oi = 0;
+      while (ui < ru.length && oi < ro.length) {
+        const u = ru[ui], o = ro[oi];
+        const move = Math.min(u.remaining, o.remaining);
+        if (move > 0) rotationPairs.push({ region, overName: o.name, overDiff: o.remaining, underName: u.name, underDiff: u.remaining, move, matchType: 'region', matchLabel: 'ภาคเดียวกัน' });
+        u.remaining -= move; o.remaining -= move;
+        if (u.remaining <= 0) ui++;
+        if (o.remaining <= 0) oi++;
+      }
+    });
+    const rotUnderCount = allItems.filter(i => i.status === 'under').length;
+    const rotOverCount = allItems.filter(i => i.status === 'over').length;
+    const rotationTotalMove = rotationPairs.reduce((a, p) => a + p.move, 0);
+
+    const rotRegionFilter = this.state.rotRegionFilter;
+    const rotationFiltered = rotationPairs.filter(p =>
+      (!rotRegionFilter || p.region === rotRegionFilter)
+    );
+    const rotationGroups = regions.filter(r => !rotRegionFilter || r === rotRegionFilter).map(region => {
+      const unmatchedUnder = rotUnders.filter(u => u.region === region && u.remaining > 0);
+      const unmatchedOver = rotOvers.filter(o => o.region === region && o.remaining > 0);
+      const allOver = allItems.filter(i => i.region === region && i.status === 'over').sort((a, b) => b.diff - a.diff);
+      const allUnder = allItems.filter(i => i.region === region && i.status === 'under').sort((a, b) => a.diff - b.diff);
+      const expanded = this.state.rotExpanded ? this.state.rotExpanded[region] === true : false;
+      return {
+        region,
+        expanded,
+        onToggle: () => this.setState(s => ({ rotExpanded: { ...(s.rotExpanded || {}), [region]: !expanded } })),
+        chevronIcon: expanded ? 'ti ti-chevron-down' : 'ti ti-chevron-right',
+        pairs: rotationFiltered.filter(p => p.region === region),
+        underCount: allUnder.length,
+        overCount: allOver.length,
+        overList: allOver.map(o => ({ name: o.name, amount: o.diff })),
+        underList: allUnder.map(u => ({ name: u.name, amount: Math.abs(u.diff) })),
+        hasOverList: allOver.length > 0,
+        hasUnderList: allUnder.length > 0,
+        overTotal: allOver.reduce((a, o) => a + o.diff, 0),
+        underTotal: allUnder.reduce((a, u) => a + Math.abs(u.diff), 0),
+        hasPairs: rotationFiltered.filter(p => p.region === region).length > 0,
+        hasUnmatchedUnder: unmatchedUnder.length > 0,
+        unmatchedUnderChips: unmatchedUnder.map(u => `${u.name} (${u.remaining})`),
+        hasUnmatchedOver: unmatchedOver.length > 0,
+        unmatchedOverChips: unmatchedOver.map(o => `${o.name} (${o.remaining})`),
+      };
+    }).filter(g => g.pairs.length || g.hasUnmatchedUnder || g.hasUnmatchedOver);
+    const rotationExportCsv = () => {
+      const header = ['ภาค', 'สาขาเกิน', 'เกิน', 'สาขาขาด', 'ขาด', 'ย้าย', 'ที่มา'];
+      const rows = rotationFiltered.map(p => [p.region, p.overName, p.overDiff, p.underName, p.underDiff, p.move, p.matchLabel]);
+      const csv = [header, ...rows].map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `rotation-plan-${this.state.selectedMonth}.csv`; a.click();
+      URL.revokeObjectURL(url);
+    };
+
+    // Locations
+    const groupOptions = groups;
+    const regionOptions = [...new Set([...this.state.dcList.map(d => d.region), ...this.state.shopList.map(s => s.region)])].filter(Boolean);
+    const dcNameOptions = this.state.dcList.map(d => d.name);
+    const dcListWithHandlers = this.state.dcList.map(d => ({
+      ...d, onGroupChange: (e) => {
+        const name = d.name;
+        this.setState(s => ({ dcList: s.dcList.map(x => x.name === name ? { ...x, group: e.target.value } : x) }));
+      },
+      onRegionChange: (e) => {
+        const name = d.name;
+        this.setState(s => ({ dcList: s.dcList.map(x => x.name === name ? { ...x, region: e.target.value } : x) }));
+      },
+    }));
+
+    const isLocDc = this.state.locTab === 'dc';
+    const isSettingsCriteria = (this.state.settingsTab || 'criteria') === 'criteria';
+
+    return {
+      todayLabel: new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' }),
+      navSections,
+      selectedMonth: this.state.selectedMonth, monthList, hasMonths: monthList.length > 0,
+      onMonthChange: (e) => this.setState({ selectedMonth: e.target.value }),
+      screenTitle: titles[screen][0], screenSubtitle: titles[screen][1],
+      goToResultsDC: () => this.setState({ screen: 'resultsDC' }),
+      goToResultsShop: () => this.setState({ screen: 'resultsShop' }),
+      goToRotation: (e) => { e.stopPropagation(); this.setState({ screen: 'rotation' }); },
+      isImport: screen === 'import', isDashboard: screen === 'dashboard', isResultsDC: screen === 'resultsDC',
+      isResultsShop: screen === 'resultsShop', isStaffing: screen === 'staffing', isRotation: screen === 'rotation', isTrend: screen === 'trend',
+      heroGridStyle: gridStyle(2, 18, 22), trendGridStyle: gridStyle(2, 16, 18),
+      criticalGridStyle: gridStyle(2, 16, 16), shopCriticalGridStyle: gridStyle(2, 16, 18),
+      top5GridStyle: gridStyle(2, 16, 18), bottom5GridStyle: gridStyle(2, 16, 18),
+      dcKpiGridStyle: gridStyle(4, 14, 18), shopKpiGridStyle: gridStyle(5, 14, 18),
+      staffKpiGridStyle: gridStyle(4, 12, 16), rotKpiGridStyle: gridStyle(4, 14, 20),
+      rotRegionColGridStyle: gridStyle(2, 12, 10),
+      tableScrollStyle: { overflowX: 'auto', WebkitOverflowScrolling: 'touch' },
+      tableMinWidthStyle: { minWidth: isMobile ? '640px' : '760px' },
+      hideOnMobile,
+      sidebarStyle: isMobile ? {
+        position: 'fixed', top: 0, left: this.state.drawerOpen ? '0' : '-260px', height: '100vh', width: '224px', zIndex: 50,
+        background: '#fff', display: 'flex', flexDirection: 'column', padding: '22px 14px', gap: '20px', borderRight: '1px solid #e8ecef', overflowY: 'auto',
+        transition: 'left 0.25s ease', boxShadow: this.state.drawerOpen ? '4px 0 24px rgba(0,0,0,0.2)' : 'none',
+      } : { width: '224px', flex: 'none', background: '#fff', display: 'flex', flexDirection: 'column', padding: '22px 14px', gap: '20px', borderRight: '1px solid #e8ecef', overflowY: 'auto' },
+      drawerBackdropStyle: (isMobile && this.state.drawerOpen) ? { position: 'fixed', inset: 0, background: 'rgba(20,30,50,0.45)', zIndex: 40 } : { display: 'none' },
+      hamburgerStyle: { display: isMobile ? 'flex' : 'none', alignItems: 'center', justifyContent: 'center', width: '36px', height: '36px', borderRadius: '9px', border: '1px solid #e8ecef', background: '#fff', cursor: 'pointer', flex: 'none' },
+      toggleDrawer: () => this.setState(s => ({ drawerOpen: !s.drawerOpen })),
+      closeDrawer: () => this.setState({ drawerOpen: false }),
+      headerPadStyle: { flex: 'none', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isMobile ? '0 16px' : '0 32px', background: '#fff', borderBottom: '1px solid #e8ecef', gap: '10px' },
+      monthBarPadStyle: { flex: 'none', padding: isMobile ? '10px 16px' : '10px 32px', background: '#f6f9fb', borderBottom: '1px solid #e8ecef', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' },
+      contentPadStyle: { flex: 1, overflowY: 'auto', padding: isMobile ? '16px 16px 40px' : '28px 32px 60px', backgroundColor: '#FFFFFF00' },
+      isSettings: screen === 'settings', isSettingsUnlocked: screen === 'settings' && this.state.settingsUnlocked, isSettingsLocked: screen === 'settings' && !this.state.settingsUnlocked,
+      settingsPwInput: this.state.settingsPwInput || '', settingsPwError: this.state.settingsPwError,
+      onSettingsPwChange: (e) => this.setState({ settingsPwInput: e.target.value, settingsPwError: false }),
+      onSettingsPwSubmit: () => this.setState(s => s.settingsPwInput === '6911' ? { settingsUnlocked: true, settingsPwInput: '', settingsPwError: false } : { settingsPwError: true }),
+      onSettingsPwKeyDown: (e) => { if (e.key === 'Enter') this.setState(s => s.settingsPwInput === '6911' ? { settingsUnlocked: true, settingsPwInput: '', settingsPwError: false } : { settingsPwError: true }); },
+
+      dataLoaded: this.state.dataLoaded, notLoaded: !this.state.dataLoaded,
+      loadSampleData: () => this.setState({ dataLoaded: true }),
+      resetData: () => this.setState({ dataLoaded: false }),
+
+      dcSheetUrl: this.state.dcSheetUrl, dcSheetStatus: this.state.dcSheetStatus, dcSheetMessage: this.state.dcSheetMessage,
+      onDcSheetUrlChange: (e) => this.setState({ dcSheetUrl: e.target.value }),
+      loadDcRosterFromSheet: this.loadDcRosterFromSheet,
+      dcSheetMsgColor: this.state.dcSheetStatus === 'error' ? '#972527' : this.state.dcSheetStatus === 'success' ? '#005226' : '#6d7277',
+
+      shopSheetUrl: this.state.shopSheetUrl, shopSheetStatus: this.state.shopSheetStatus, shopSheetMessage: this.state.shopSheetMessage,
+      onShopSheetUrlChange: (e) => this.setState({ shopSheetUrl: e.target.value }),
+      loadShopFromSheet: this.loadShopFromSheet,
+      shopSheetMsgColor: this.state.shopSheetStatus === 'error' ? '#972527' : this.state.shopSheetStatus === 'success' ? '#005226' : '#6d7277',
+
+      shopRevenueSheetUrl: this.state.shopRevenueSheetUrl, shopRevenueSheetMessage: this.state.shopRevenueSheetMessage,
+      onShopRevenueSheetUrlChange: (e) => this.setState({ shopRevenueSheetUrl: e.target.value }),
+      loadShopRevenueFromSheet: this.loadShopRevenueFromSheet,
+      shopRevenueSheetMsgColor: this.state.shopRevenueSheetStatus === 'error' ? '#972527' : this.state.shopRevenueSheetStatus === 'success' ? '#005226' : '#6d7277',
+
+      shopEmpSheetUrl: this.state.shopEmpSheetUrl, shopEmpSheetMessage: this.state.shopEmpSheetMessage,
+      onShopEmpSheetUrlChange: (e) => this.setState({ shopEmpSheetUrl: e.target.value }),
+      loadShopEmpFromSheet: this.loadShopEmpFromSheet,
+      shopEmpSheetMsgColor: this.state.shopEmpSheetStatus === 'error' ? '#972527' : this.state.shopEmpSheetStatus === 'success' ? '#005226' : '#6d7277',
+
+      dcInboundSheetUrl: this.state.dcInboundSheetUrl, dcInboundSheetStatus: this.state.dcInboundSheetStatus, dcInboundSheetMessage: this.state.dcInboundSheetMessage,
+      onDcInboundSheetUrlChange: (e) => this.setState({ dcInboundSheetUrl: e.target.value }),
+      loadDcInboundFromSheet: this.loadDcInboundFromSheet,
+      dcInboundSheetMsgColor: this.state.dcInboundSheetStatus === 'error' ? '#972527' : this.state.dcInboundSheetStatus === 'success' ? '#005226' : '#6d7277',
+
+      dcEmpSheetUrl: this.state.dcEmpSheetUrl, dcEmpSheetMessage: this.state.dcEmpSheetMessage,
+      onDcEmpSheetUrlChange: (e) => this.setState({ dcEmpSheetUrl: e.target.value }),
+      loadDcEmpFromSheet: this.loadDcEmpFromSheet,
+      dcEmpSheetMsgColor: this.state.dcEmpSheetStatus === 'error' ? '#972527' : this.state.dcEmpSheetStatus === 'success' ? '#005226' : '#6d7277',
+
+      kpis, groupSummary, underTotal, overTotal,
+      dcUnderList, dcOverList, shopUnderList, shopOverList, dcUnderMore, dcOverMore, shopUnderMore, shopOverMore,
+      naTotal, naList, dcNaCount, shopNaCount,
+      dcMismatchTotal, dcMismatchColor, dcCriticalBranch, shopMismatchTotal, shopMismatchColor, shopCriticalBranch,
+      dcTotalCount: dcAll.length, dcMeetCount: dcMeet, shopTotalCount: shopComputed.length, shopMeetCount: shopMeet,
+      trendWidth, trendHeight, trendPoints, trendPolyline, trendSmoothPath, trendAreaPath, shopTrendPoints, shopTrendPolyline, shopTrendSmoothPath, shopTrendAreaPath,
+      trendDeltaLabel, trendDeltaColor, trendDeltaSub,
+      summaryModalOpen: this.state.summaryModalOpen,
+      openSummaryModal: () => this.setState({ summaryModalOpen: true }),
+      closeSummaryModal: () => this.setState({ summaryModalOpen: false }),
+      summaryBullets: [
+        { text: `DC ทั้งหมด ${dcAll.length} สาขา — เหมาะสม ${dcMeet}, ขาด ${dcUnderCount}, เกิน ${dcOverCount}`, color: dcMismatchColor, icon: 'ti ti-building-store' },
+        { text: `สาขาวิกฤตสุดฝั่ง DC: ${dcCriticalBranch.name} (${dcCriticalBranch.label})`, color: '#972527', icon: 'ti ti-alert-triangle' },
+        { text: `Productivity เฉลี่ย DC เดือนนี้ ${dcAvgProd} เทียบเดือนก่อน ${dcProdPctLabel}`, color: dcProdPctColor, icon: 'ti ti-chart-bar' },
+        { text: `Shop ทั้งหมด ${shopComputed.length} สาขา — เหมาะสม ${shopMeet}, ขาด ${shopUnderCount}, เกิน ${shopOverCount}`, color: shopMismatchColor, icon: 'ti ti-shopping-bag' },
+        { text: `สาขาวิกฤตสุดฝั่ง Shop: ${shopCriticalBranch.name} (${shopCriticalBranch.label})`, color: '#972527', icon: 'ti ti-alert-triangle' },
+        { text: `ยอดขายรวม Shop เดือนนี้ ${fmt(shopRevenueTotalNow)} บาท เทียบเดือนก่อน ${shopRevenuePctLabel}`, color: shopRevenuePctColor, icon: 'ti ti-cash' },
+        { text: `บาท/คน เฉลี่ย Shop เดือนนี้ ${fmt(shopBppAvgNow)} เทียบเดือนก่อน ${shopBppPctLabel}`, color: shopBppPctColor, icon: 'ti ti-coin' },
+        { text: worstRegion ? `ภาคที่มีปัญหากำลังพลมากที่สุด: ${worstRegion.region} (ขาด+เกินรวม ${worstRegion.under + worstRegion.over} สาขา)` : 'ไม่มีภาคที่มีปัญหากำลังพล', color: '#723f00', icon: 'ti ti-map-pin' },
+      ],
+      dcShopSplit, regionDashRows, regionDashMore, regionDashTotal,
+
+      dcList: dcListWithHandlers,
+      shopList: shopComputed.map(s => ({
+        ...s,
+        onRegionChange: (e) => {
+          const name = s.name;
+          this.setState(st => ({ shopList: st.shopList.map(x => x.name === name ? { ...x, region: e.target.value } : x) }));
+        },
+        onDcParentChange: (e) => {
+          const name = s.name;
+          this.setState(st => ({ shopList: st.shopList.map(x => x.name === name ? { ...x, dcParent: e.target.value } : x) }));
+        },
+      })),
+      regionOptions, dcNameOptions,
+      dcQuery: this.state.dcQuery, dcStatusFilter: this.state.dcStatusFilter, dcRegionFilter: this.state.dcRegionFilter || '',
+      onDcQueryChange: (e) => this.setState({ dcQuery: e.target.value }),
+      onDcRegionFilterChange: (e) => this.setState({ dcRegionFilter: e.target.value }),
+      onDcFilterAll: () => this.setState({ dcStatusFilter: '' }),
+      onDcFilterUnder: () => this.setState({ dcStatusFilter: 'under' }),
+      onDcFilterOver: () => this.setState({ dcStatusFilter: 'over' }),
+      dcKpiAllStyle: { background: '#fff', borderRadius: '14px', padding: '16px 18px', boxShadow: '0 1px 2px rgba(20,30,50,0.04), 0 8px 24px rgba(20,30,50,0.03)', cursor: 'pointer', position: 'relative', overflow: 'hidden', border: !this.state.dcStatusFilter ? '2px solid #1A6FA8' : '2px solid transparent', textAlign: 'left' },
+      dcKpiUnderStyle: { background: '#fdece9', borderRadius: '14px', padding: '16px 18px', boxShadow: '0 1px 2px rgba(20,30,50,0.04), 0 8px 24px rgba(20,30,50,0.03)', cursor: 'pointer', position: 'relative', overflow: 'hidden', border: this.state.dcStatusFilter === 'under' ? '2px solid #972527' : '2px solid transparent', textAlign: 'left' },
+      dcKpiOverStyle: { background: '#fdf1de', borderRadius: '14px', padding: '16px 18px', boxShadow: '0 1px 2px rgba(20,30,50,0.04), 0 8px 24px rgba(20,30,50,0.03)', cursor: 'pointer', position: 'relative', overflow: 'hidden', border: this.state.dcStatusFilter === 'over' ? '2px solid #723f00' : '2px solid transparent', textAlign: 'left' },
+      dcExportCsv, dcResultsTotal, dcResultsAvgProd, dcResultsUnderCount, dcResultsOverCount,
+      dcColumns, dcTableRows, dcAvgProd, dcUnderCount, dcOverCount, dcTop5, dcBottom5, shopTop5, shopBottom5,
+
+      shopComputed, shopTableRows, shopTotalRevenue, shopAvgBpp, shopUnderCount, shopOverCount,
+      shopColumns, shopQuery: this.state.shopQuery, shopRegionFilter: this.state.shopRegionFilter || '',
+      onShopQueryChange: (e) => this.setState({ shopQuery: e.target.value }),
+      onShopRegionFilterChange: (e) => this.setState({ shopRegionFilter: e.target.value }),
+      onShopFilterAll: () => this.setState({ shopStatusFilter: '' }),
+      onShopFilterUnder: () => this.setState({ shopStatusFilter: 'under' }),
+      onShopFilterOver: () => this.setState({ shopStatusFilter: 'over' }),
+      shopKpiAllStyle, shopKpiUnderStyle, shopKpiOverStyle, shopExportCsv,
+      shopResultsTotal, shopResultsAvgBpp, shopResultsUnderCount, shopResultsOverCount, shopResultsRevenue,
+      settings: this.state.settings,
+      onShopTargetChange: (e) => this.setState(s => { const settings = { ...s.settings, shopTarget: Number(e.target.value) || 1 }; this.persistSettingsToSheet(settings); return { settings }; }),
+      onRoundModeChange: (e) => this.setState(s => { const settings = { ...s.settings, roundMode: e.target.value }; this.persistSettingsToSheet(settings); return { settings }; }),
+
+      staffQuery: this.state.staffQuery || '', onStaffQueryChange: (e) => this.setState({ staffQuery: e.target.value }),
+      onStaffTypeAll: () => this.setState({ staffTypeFilter: '' }),
+      onStaffTypeDc: () => this.setState({ staffTypeFilter: 'DC' }),
+      onStaffTypeShop: () => this.setState({ staffTypeFilter: 'Shop' }),
+      staffTypeAllStyle: { padding: '6px 14px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', borderRadius: '7px', border: 'none', fontFamily: 'inherit', color: !staffTypeFilter ? '#1A6FA8' : '#5e6468', background: !staffTypeFilter ? '#fff' : 'transparent', boxShadow: !staffTypeFilter ? '0 1px 3px rgba(20,30,50,0.08)' : 'none' },
+      staffTypeDcStyle: { padding: '6px 14px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', borderRadius: '7px', border: 'none', fontFamily: 'inherit', color: staffTypeFilter === 'DC' ? '#1A6FA8' : '#5e6468', background: staffTypeFilter === 'DC' ? '#fff' : 'transparent', boxShadow: staffTypeFilter === 'DC' ? '0 1px 3px rgba(20,30,50,0.08)' : 'none' },
+      staffTypeShopStyle: { padding: '6px 14px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', borderRadius: '7px', border: 'none', fontFamily: 'inherit', color: staffTypeFilter === 'Shop' ? '#1A6FA8' : '#5e6468', background: staffTypeFilter === 'Shop' ? '#fff' : 'transparent', boxShadow: staffTypeFilter === 'Shop' ? '0 1px 3px rgba(20,30,50,0.08)' : 'none' },
+      staffFilterCards, staffTableRows,
+      staffColName: 'สาขา' + staffSortIcon('name'), onStaffSortName: () => onStaffSort('name'),
+      staffColEmp: 'พนักงานจริง' + staffSortIcon('emp'), onStaffSortEmp: () => onStaffSort('emp'),
+      staffColReq: 'เหมาะสม' + staffSortIcon('req'), onStaffSortReq: () => onStaffSort('req'),
+      staffColDiff: 'ผลต่าง' + staffSortIcon('diff'), onStaffSortDiff: () => onStaffSort('diff'),
+      staffColStatus: 'สถานะ' + staffSortIcon('status'), onStaffSortStatus: () => onStaffSort('status'),
+
+      regionSummary, rotationPairs, rotUnderCount, rotOverCount, rotationTotalMove,
+      trendMonths: trendPageMonths, trendDcRows, trendShopRows, trendDcAvgRow, trendShopAvgRow,
+      trendQuery: this.state.trendQuery || '', onTrendQueryChange: (e) => this.setState({ trendQuery: e.target.value }),
+      trendDcExportCsv, trendShopExportCsv,
+      empModalOpen: this.state.empModalOpen, empModalName: this.state.empModalName || '', empModalRows,
+      closeEmpModal: () => this.setState({ empModalOpen: false }),
+      trendTab: this.state.trendTab || 'dc',
+      isTrendDc: (this.state.trendTab || 'dc') === 'dc', isTrendShop: this.state.trendTab === 'shop',
+      setTrendTabDc: () => this.setState({ trendTab: 'dc' }), setTrendTabShop: () => this.setState({ trendTab: 'shop' }),
+      trendTabDcStyle: { padding: '6px 18px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', borderRadius: '7px', border: 'none', fontFamily: 'inherit', color: (this.state.trendTab || 'dc') === 'dc' ? '#1A6FA8' : '#5e6468', background: (this.state.trendTab || 'dc') === 'dc' ? '#fff' : 'transparent', boxShadow: (this.state.trendTab || 'dc') === 'dc' ? '0 1px 3px rgba(20,30,50,0.08)' : 'none' },
+      trendTabShopStyle: { padding: '6px 18px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', borderRadius: '7px', border: 'none', fontFamily: 'inherit', color: this.state.trendTab === 'shop' ? '#1A6FA8' : '#5e6468', background: this.state.trendTab === 'shop' ? '#fff' : 'transparent', boxShadow: this.state.trendTab === 'shop' ? '0 1px 3px rgba(20,30,50,0.08)' : 'none' },
+      trendColName: '\u0e0a\u0e37\u0e48\u0e2d\u0e2a\u0e32\u0e02\u0e32' + trendSortIcon('name'), onTrendSortName: () => onTrendSort('name'),
+      trendColPct: '\u0e41\u0e19\u0e27\u0e42\u0e19\u0e49\u0e21' + trendSortIcon('pct'), onTrendSortPct: () => onTrendSort('pct'),
+      trendMonthCols,
+      rotationGroups, rotationExportCsv,
+      rotRegionFilter: this.state.rotRegionFilter || '', onRotRegionFilterChange: (e) => this.setState({ rotRegionFilter: e.target.value }),
+      rotRegionOptions: regions,
+
+      groupSettingsRows: groups.map(g => ({
+        key: g, label: GROUP_LABELS[g], minStaff: this.state.settings[g].minStaff, target: this.state.settings[g].target,
+        onMinChange: (e) => this.setState(s => { const settings = { ...s.settings, [g]: { ...s.settings[g], minStaff: Number(e.target.value) || 0 } }; this.persistSettingsToSheet(settings); return { settings }; }),
+        onTargetChange: (e) => this.setState(s => { const settings = { ...s.settings, [g]: { ...s.settings[g], target: Number(e.target.value) || 1 } }; this.persistSettingsToSheet(settings); return { settings }; }),
+      })),
+
+      locTab: this.state.locTab, isLocDc, isLocShop: !isLocDc,
+      setLocTabDc: () => this.setState({ locTab: 'dc' }), setLocTabShop: () => this.setState({ locTab: 'shop' }),
+      locTabDcStyle: { padding: '6px 18px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', borderRadius: '7px', border: 'none', fontFamily: 'inherit', color: isLocDc ? '#1A6FA8' : '#5e6468', background: isLocDc ? '#fff' : 'transparent', boxShadow: isLocDc ? '0 1px 3px rgba(20,30,50,0.08)' : 'none' },
+      locTabShopStyle: { padding: '6px 18px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', borderRadius: '7px', border: 'none', fontFamily: 'inherit', color: !isLocDc ? '#1A6FA8' : '#5e6468', background: !isLocDc ? '#fff' : 'transparent', boxShadow: !isLocDc ? '0 1px 3px rgba(20,30,50,0.08)' : 'none' },
+      groupOptions,
+
+      settingsSaveStatus: this.state.settingsSaveStatus,
+      settingsSaveBannerText: this.state.settingsSaveStatus === 'saving' ? 'กำลังบันทึก...' : this.state.settingsSaveStatus === 'saved' ? '✓ บันทึกสำเร็จ' : this.state.settingsSaveStatus === 'error' ? '✕ บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง' : '',
+      settingsSaveBannerStyle: { padding: '9px 16px', borderRadius: '9px', fontSize: '12.5px', fontWeight: 600, background: this.state.settingsSaveStatus === 'error' ? '#fdece9' : this.state.settingsSaveStatus === 'saved' ? '#eaf7ef' : '#eef2f5', color: this.state.settingsSaveStatus === 'error' ? '#972527' : this.state.settingsSaveStatus === 'saved' ? '#005226' : '#565e64' },
+      settingsTab: this.state.settingsTab || 'criteria', isSettingsCriteria, isSettingsBranches: !isSettingsCriteria,
+      setSettingsTabCriteria: () => this.setState({ settingsTab: 'criteria' }), setSettingsTabBranches: () => this.setState({ settingsTab: 'branches' }),
+      settingsTabCriteriaStyle: { padding: '6px 18px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', borderRadius: '7px', border: 'none', fontFamily: 'inherit', color: isSettingsCriteria ? '#1A6FA8' : '#5e6468', background: isSettingsCriteria ? '#fff' : 'transparent', boxShadow: isSettingsCriteria ? '0 1px 3px rgba(20,30,50,0.08)' : 'none' },
+      settingsTabBranchesStyle: { padding: '6px 18px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', borderRadius: '7px', border: 'none', fontFamily: 'inherit', color: !isSettingsCriteria ? '#1A6FA8' : '#5e6468', background: !isSettingsCriteria ? '#fff' : 'transparent', boxShadow: !isSettingsCriteria ? '0 1px 3px rgba(20,30,50,0.08)' : 'none' },
+
+      listModalOpen: this.state.listModalOpen,
+      listModalTitle: activeListModal.title, listModalItems: activeListModal.items, listModalColor: activeListModal.color,
+      closeListModal: () => this.setState({ listModalOpen: false }),
+      openDcUnderModal: (e) => { e.stopPropagation(); this.setState({ listModalOpen: true, listModalKind: 'dcUnder' }); },
+      openDcOverModal: (e) => { e.stopPropagation(); this.setState({ listModalOpen: true, listModalKind: 'dcOver' }); },
+      openShopUnderModal: (e) => { e.stopPropagation(); this.setState({ listModalOpen: true, listModalKind: 'shopUnder' }); },
+      openShopOverModal: (e) => { e.stopPropagation(); this.setState({ listModalOpen: true, listModalKind: 'shopOver' }); },
+      dashModalOpen: this.state.dashModalOpen,
+      stopProp: (e) => e.stopPropagation(),
+      closeDashModal: () => this.setState({ dashModalOpen: false }),
+      dashModalName: this.state.dashModalItem ? this.state.dashModalItem.name : '',
+      dashModalRegion: this.state.dashModalItem ? (this.state.dashModalItem.region || '—') : '—',
+      dashModalEmp: this.state.dashModalItem ? this.state.dashModalItem.emp : '—',
+      dashModalMetricLabel: this.state.dashModalType === 'DC' ? 'Productivity (กล่อง/คน/ชม.)' : 'บาท/คน',
+      dashModalMetricValue: this.state.dashModalItem ? (this.state.dashModalType === 'DC' ? this.state.dashModalItem.prod : fmt(this.state.dashModalItem.bpp)) : '—',
+      dashModalIsShop: this.state.dashModalType === 'Shop',
+      dashModalRevenue: this.state.dashModalItem && this.state.dashModalItem.revenue != null ? fmt(this.state.dashModalItem.revenue) : '—',
+      dashModalReq: this.state.dashModalItem ? this.state.dashModalItem.req : '—',
+      dashModalDiffLabel: this.state.dashModalItem ? this.state.dashModalItem.diffLabel : '—',
+      dashModalDiffColor: this.state.dashModalItem ? this.state.dashModalItem.diffColor : '#8a9095',
+      dashModalStatusLabel: this.state.dashModalItem ? this.state.dashModalItem.statusLabel : '',
+      dashModalStatusBg: this.state.dashModalItem ? this.state.dashModalItem.statusBg : '#eee',
+      dashModalStatusColor: this.state.dashModalItem ? this.state.dashModalItem.statusColor : '#333',
+      goToDashModalDetail: () => this.setState({ screen: this.state.dashModalType === 'DC' ? 'resultsDC' : 'resultsShop', dashModalOpen: false }),
+      shopModalOpen: this.state.shopModalOpen, shopModalName: this.state.shopModalName, shopModalDc: this.state.shopModalDc,
+      openShopModal: () => this.setState({ shopModalOpen: true, shopModalName: '', shopModalDc: '' }),
+      closeShopModal: () => this.setState({ shopModalOpen: false }),
+      onShopModalNameChange: (e) => this.setState({ shopModalName: e.target.value }),
+      onShopModalDcChange: (e) => this.setState({ shopModalDc: e.target.value }),
+      saveShopModal: () => {
+        const name = this.state.shopModalName.trim();
+        if (!name) return;
+        this.setState(s => ({
+          shopList: [...s.shopList, { name, region: 'BKK / กทม.', dcParent: s.shopModalDc || '—', emp: 1, revenue: 100000 }],
+          shopModalOpen: false,
+        }));
+      },
+    };
+  }
+}
+
+</script>
+</body>
+</html>
